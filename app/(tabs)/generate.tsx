@@ -152,7 +152,7 @@ export default function GenerateScreen() {
           ))}
         </View>
 
-        <PremiumCard onUpgrade={() => setShowUpgrade(true)} />
+        {!isPremium && <PremiumCard onUpgrade={() => setShowUpgrade(true)} />}
       </ScrollView>
 
       <Modal visible={mode !== null} animationType="slide" transparent>
