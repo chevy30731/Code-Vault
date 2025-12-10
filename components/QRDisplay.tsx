@@ -19,6 +19,7 @@ interface QRDisplayProps {
   color?: string;
   backgroundColor?: string;
   showShare?: boolean;
+  skin?: 'standard' | 'cockpit' | 'tribal' | 'artifact';
 }
 
 export function QRDisplay({ 
@@ -28,7 +29,36 @@ export function QRDisplay({
   color = '#000000',
   backgroundColor = '#FFFFFF',
   showShare = true,
+  skin = 'standard',
 }: QRDisplayProps) {
+
+  const getSkinStyle = () => {
+    switch (skin) {
+      case 'cockpit':
+        return {
+          borderWidth: 4,
+          borderColor: '#00D9FF',
+          padding: 40,
+          borderRadius: 0,
+        };
+      case 'tribal':
+        return {
+          borderWidth: 8,
+          borderColor: '#FFD700',
+          padding: 40,
+          borderRadius: 0,
+        };
+      case 'artifact':
+        return {
+          borderWidth: 6,
+          borderColor: '#8B4513',
+          padding: 40,
+          borderRadius: 0,
+        };
+      default:
+        return {};
+    }
+  };
   const insets = useSafeAreaInsets();
   const qrRef = useRef(null);
   const [isSharing, setIsSharing] = useState(false);
@@ -57,13 +87,18 @@ export function QRDisplay({
       </View>
 
       <ScrollView contentContainerStyle={styles.content}>
-        <View style={styles.qrContainer} ref={qrRef}>
+        <View style={[styles.qrContainer, getSkinStyle()]} ref={qrRef}>
           <QRCode 
             value={data} 
             size={250}
             color={color}
             backgroundColor={backgroundColor}
           />
+          {/* Code Vault Watermark */}
+          <View style={styles.watermark}>
+            <MaterialIcons name="security" size={12} color="#666666" />
+            <Text style={styles.watermarkText}>Code Vault</Text>
+          </View>
         </View>
 
         <View style={styles.dataContainer}>
@@ -126,6 +161,18 @@ const styles = StyleSheet.create({
     marginVertical: 16,
     backgroundColor: '#FFFFFF',
     borderRadius: 20,
+    position: 'relative',
+  },
+  watermark: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    marginTop: 12,
+    gap: 4,
+  },
+  watermarkText: {
+    fontSize: 10,
+    color: '#666666',
+    fontWeight: '600',
   },
   dataContainer: {
     marginHorizontal: 16,

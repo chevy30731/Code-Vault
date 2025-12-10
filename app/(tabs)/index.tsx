@@ -7,6 +7,10 @@ import { useSafeAreaInsets } from 'react-native-safe-area-context';
 // import * as LocalAuthentication from 'expo-local-authentication';
 // import * as Clipboard from 'expo-clipboard';
 import { qrService } from '@/services/qr';
+import { scanLogService } from '@/services/scanLog';
+import { threatDetectionService } from '@/services/threatDetection';
+import type { ScanProfile } from '@/types/scanLog';
+import { ScanProfileSelector } from '@/components/ScanProfileSelector';
 import { artifactService } from '@/services/artifact';
 import { quantumQRService } from '@/services/quantumQR';
 import { storageService } from '@/services/storage';
@@ -328,6 +332,7 @@ export default function ScanScreen() {
   const [toastMessage, setToastMessage] = useState('');
   const [developerMode, setDeveloperMode] = useState(false);
   const [biometricAvailable] = useState(false); // Biometric disabled - optional dependency
+  const [scanProfile, setScanProfile] = useState<ScanProfile>('standard');
   const insets = useSafeAreaInsets();
   
   // Animations
@@ -338,6 +343,7 @@ export default function ScanScreen() {
   useEffect(() => {
     requestPermission();
     loadPIN();
+    loadScanProfile();
     // checkBiometric(); // Disabled - optional dependency
     startReticleAnimation();
   }, []);
@@ -401,6 +407,17 @@ export default function ScanScreen() {
     if (pinConfig.enabled) {
       setSystemPIN(pinConfig.pin);
     }
+  };
+
+  const loadScanProfile = async () => {
+    const profile = await storageService.getScanProfile();
+    setScanProfile(profile);
+  };
+
+  const handleProfileChange = async (profile: ScanProfile) => {
+    setScanProfile(profile);
+    await storageService.setScanProfile(profile);
+    showToast(`Switched to ${profile} mode`);
   };
 
   // Biometric authentication disabled - optional dependency
@@ -485,6 +502,22 @@ export default function ScanScreen() {
       
       setScanned(true);
       setScannedData(data);
+
+      // Determine scan type for logging
+      let scanType: 'quantum' | 'artifact' | 'standard' | 'wallet' | 'encrypted' = 'standard';
+      if (data.startsWith(QUANTUM_QR_PREFIX)) scanType = 'quantum';
+      else if (data.startsWith('CODEVAULT_ARTIFACT:')) scanType = 'artifact';
+      else if (data.includes('wallet') || data.includes('bitcoin') || data.includes('ethereum')) scanType = 'wallet';
+
+      // Threat detection
+      const threatLevel = threatDetectionService.analyzeThreat(data, scanType);
+
+      // Create scan log
+      const profileConfig = await storageService.getScanProfile();
+      await scanLogService.createScanLog(scanType, data, profileConfig, {
+        addGPS: scanProfile === 'legacy' || scanProfile === 'artifact',
+        threatLevel,
+      });
       
       // Check if it's a Quantum QR code
       if (data.startsWith(QUANTUM_QR_PREFIX)) {
@@ -677,6 +710,14 @@ export default function ScanScreen() {
             )}
           </View>
         </CameraView>
+      </View>
+
+      <View style={styles.profileSelector}>
+        <Text style={styles.profileLabel}>Scan Mode:</Text>
+        <ScanProfileSelector
+          selectedProfile={scanProfile}
+          onSelect={handleProfileChange}
+        />
       </View>
 
       <View style={styles.controls}>
@@ -929,10 +970,20 @@ const styles = StyleSheet.create({
     backgroundColor: '#00D9FF',
     top: '50%',
   },
+  profileSelector: {
+    paddingHorizontal: 20,
+    paddingVertical: 12,
+  },
+  profileLabel: {
+    fontSize: 14,
+    fontWeight: '600',
+    color: '#00D9FF',
+    marginBottom: 8,
+  },
   controls: {
     flexDirection: 'row',
     justifyContent: 'center',
-    paddingVertical: 20,
+    paddingVertical: 12,
   },
   controlButton: {
     backgroundColor: '#1A1A2E',
