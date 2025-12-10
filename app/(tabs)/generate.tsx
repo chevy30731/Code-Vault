@@ -61,7 +61,14 @@ export default function GenerateScreen() {
       return;
     }
     if (type === 'quantum' && !isPremium) {
-      setShowUpgrade(true);
+      Alert.alert(
+        'Premium Required',
+        'Quantum QR codes require a Premium subscription. Upgrade to create multi-layer encrypted QR codes.',
+        [
+          { text: 'Cancel', style: 'cancel' },
+          { text: 'Upgrade', onPress: () => setShowUpgrade(true) },
+        ]
+      );
       return;
     }
     setMode(type);
