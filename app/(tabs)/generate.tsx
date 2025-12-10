@@ -86,7 +86,7 @@ export default function GenerateScreen() {
     setMode(null);
   };
 
-  const handleGenerateQuantum = async (name: string, layers: QuantumLayerConfig[]) => {
+  const handleGenerateQuantum = async (name: string, layers: QuantumLayerConfig[], expiration?: any) => {
     if (!canGenerate) {
       setShowUpgrade(true);
       return;
@@ -101,7 +101,7 @@ export default function GenerateScreen() {
     }
 
     try {
-      const quantumQR = await quantumQRService.generateQuantumQR(name, layers, systemPIN);
+      const quantumQR = await quantumQRService.generateQuantumQR(name, layers, systemPIN, expiration);
       await incrementGeneration();
       await storageService.saveQuantumQR(quantumQR);
       setGeneratedQuantumQR(quantumQR);

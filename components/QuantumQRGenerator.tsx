@@ -14,7 +14,7 @@ import { LAYER_TYPES } from '@/types/quantumQR';
 
 interface QuantumQRGeneratorProps {
   isPremium: boolean;
-  onGenerate: (name: string, layers: QuantumLayerConfig[]) => void;
+  onGenerate: (name: string, layers: QuantumLayerConfig[], expiration?: any) => void;
   onClose: () => void;
   onUpgrade: () => void;
 }
@@ -29,6 +29,10 @@ export function QuantumQRGenerator({
   const [layers, setLayers] = useState<QuantumLayerConfig[]>([
     { type: 'public', name: 'Public Info', data: '' },
   ]);
+  const [enableExpiration, setEnableExpiration] = useState(false);
+  const [expirationType, setExpirationType] = useState<'time' | 'scans' | 'both'>('time');
+  const [expirationHours, setExpirationHours] = useState('24');
+  const [maxScans, setMaxScans] = useState('10');
 
   const addLayer = (type: 'public' | 'private' | 'hidden') => {
     if (!isPremium && (type === 'private' || type === 'hidden')) {
@@ -70,7 +74,22 @@ export function QuantumQRGenerator({
       return;
     }
 
-    onGenerate(qrName, layers);
+    let expiration;
+    if (enableExpiration) {
+      expiration = {
+        type: expirationType,
+        expiresAt:
+          expirationType === 'time' || expirationType === 'both'
+            ? Date.now() + parseInt(expirationHours) * 60 * 60 * 1000
+            : undefined,
+        maxScans:
+          expirationType === 'scans' || expirationType === 'both'
+            ? parseInt(maxScans)
+            : undefined,
+      };
+    }
+
+    onGenerate(qrName, layers, expiration);
   };
 
   return (
@@ -154,6 +173,75 @@ export function QuantumQRGenerator({
             </View>
           );
         })}
+      </View>
+
+      <View style={styles.expirationSection}>
+        <TouchableOpacity
+          style={styles.expirationToggle}
+          onPress={() => setEnableExpiration(!enableExpiration)}
+        >
+          <MaterialIcons
+            name={enableExpiration ? 'check-box' : 'check-box-outline-blank'}
+            size={24}
+            color="#00D9FF"
+          />
+          <Text style={styles.expirationToggleText}>Self-Destruct Mode</Text>
+        </TouchableOpacity>
+
+        {enableExpiration && (
+          <View style={styles.expirationOptions}>
+            <Text style={styles.expirationLabel}>Expiration Type</Text>
+            <View style={styles.expirationButtons}>
+              {[{ value: 'time', label: 'Time' }, { value: 'scans', label: 'Scans' }, { value: 'both', label: 'Both' }].map((type) => (
+                <TouchableOpacity
+                  key={type.value}
+                  style={[
+                    styles.expirationButton,
+                    expirationType === type.value && styles.expirationButtonActive,
+                  ]}
+                  onPress={() => setExpirationType(type.value as any)}
+                >
+                  <Text
+                    style={[
+                      styles.expirationButtonText,
+                      expirationType === type.value && styles.expirationButtonTextActive,
+                    ]}
+                  >
+                    {type.label}
+                  </Text>
+                </TouchableOpacity>
+              ))}
+            </View>
+
+            {(expirationType === 'time' || expirationType === 'both') && (
+              <View style={styles.inputGroup}>
+                <Text style={styles.inputLabel}>Expires in (hours)</Text>
+                <TextInput
+                  style={styles.expirationInput}
+                  value={expirationHours}
+                  onChangeText={setExpirationHours}
+                  keyboardType="number-pad"
+                  placeholder="24"
+                  placeholderTextColor="#666666"
+                />
+              </View>
+            )}
+
+            {(expirationType === 'scans' || expirationType === 'both') && (
+              <View style={styles.inputGroup}>
+                <Text style={styles.inputLabel}>Max scans</Text>
+                <TextInput
+                  style={styles.expirationInput}
+                  value={maxScans}
+                  onChangeText={setMaxScans}
+                  keyboardType="number-pad"
+                  placeholder="10"
+                  placeholderTextColor="#666666"
+                />
+              </View>
+            )}
+          </View>
+        )}
       </View>
 
       <View style={styles.addLayerSection}>
@@ -353,5 +441,77 @@ const styles = StyleSheet.create({
     fontSize: 16,
     fontWeight: '700',
     color: '#000000',
+  },
+  expirationSection: {
+    paddingHorizontal: 20,
+    marginBottom: 20,
+  },
+  expirationToggle: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 12,
+    marginBottom: 12,
+  },
+  expirationToggleText: {
+    fontSize: 16,
+    fontWeight: '600',
+    color: '#FFFFFF',
+  },
+  expirationOptions: {
+    backgroundColor: '#1A1A2E',
+    borderRadius: 12,
+    padding: 16,
+    borderWidth: 1,
+    borderColor: '#FF444433',
+  },
+  expirationLabel: {
+    fontSize: 14,
+    fontWeight: '600',
+    color: '#CCCCCC',
+    marginBottom: 8,
+  },
+  expirationButtons: {
+    flexDirection: 'row',
+    gap: 8,
+    marginBottom: 12,
+  },
+  expirationButton: {
+    flex: 1,
+    paddingVertical: 10,
+    borderRadius: 8,
+    backgroundColor: '#0F0F1E',
+    alignItems: 'center',
+    borderWidth: 1,
+    borderColor: '#666666',
+  },
+  expirationButtonActive: {
+    backgroundColor: '#FF444422',
+    borderColor: '#FF4444',
+  },
+  expirationButtonText: {
+    fontSize: 14,
+    fontWeight: '600',
+    color: '#999999',
+  },
+  expirationButtonTextActive: {
+    color: '#FF4444',
+  },
+  inputGroup: {
+    marginBottom: 8,
+  },
+  inputLabel: {
+    fontSize: 12,
+    fontWeight: '600',
+    color: '#999999',
+    marginBottom: 6,
+  },
+  expirationInput: {
+    backgroundColor: '#0F0F1E',
+    borderRadius: 8,
+    padding: 12,
+    color: '#FFFFFF',
+    fontSize: 14,
+    borderWidth: 1,
+    borderColor: '#66666633',
   },
 });

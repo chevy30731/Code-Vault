@@ -2,6 +2,7 @@ import AsyncStorage from '@react-native-async-storage/async-storage';
 import type { PremiumStatus, PINConfig, SavedQRCode, QRCategory } from '@/types/qr';
 import type { ArtifactMetadata } from '@/types/artifact';
 import type { QuantumQRCode } from '@/types/quantumQR';
+import type { ScanLog, ScanProfile } from '@/types/scanLog';
 import { DEFAULT_CATEGORIES } from '@/types/qr';
 
 const KEYS = {
@@ -11,6 +12,8 @@ const KEYS = {
   SAVED_QR_CODES: '@code_vault_saved_qr',
   CATEGORIES: '@code_vault_categories',
   QUANTUM_QR_CODES: '@code_vault_quantum_qr',
+  SCAN_LOGS: '@code_vault_scan_logs',
+  SCAN_PROFILE: '@code_vault_scan_profile',
 };
 
 export const storageService = {
@@ -246,6 +249,66 @@ export const storageService = {
       await AsyncStorage.setItem(KEYS.QUANTUM_QR_CODES, JSON.stringify(filtered));
     } catch (error) {
       console.error('Error deleting quantum QR:', error);
+    }
+  },
+
+  // Scan Logs
+  async saveScanLog(scanLog: ScanLog): Promise<void> {
+    try {
+      const logs = await this.getScanLogs();
+      logs.unshift(scanLog);
+      // Keep last 1000 scans
+      const trimmed = logs.slice(0, 1000);
+      await AsyncStorage.setItem(KEYS.SCAN_LOGS, JSON.stringify(trimmed));
+    } catch (error) {
+      console.error('Error saving scan log:', error);
+    }
+  },
+
+  async getScanLogs(): Promise<ScanLog[]> {
+    try {
+      const data = await AsyncStorage.getItem(KEYS.SCAN_LOGS);
+      return data ? JSON.parse(data) : [];
+    } catch (error) {
+      console.error('Error getting scan logs:', error);
+      return [];
+    }
+  },
+
+  async deleteScanLog(id: string): Promise<void> {
+    try {
+      const logs = await this.getScanLogs();
+      const filtered = logs.filter((log) => log.id !== id);
+      await AsyncStorage.setItem(KEYS.SCAN_LOGS, JSON.stringify(filtered));
+    } catch (error) {
+      console.error('Error deleting scan log:', error);
+    }
+  },
+
+  async clearScanLogs(): Promise<void> {
+    try {
+      await AsyncStorage.setItem(KEYS.SCAN_LOGS, JSON.stringify([]));
+    } catch (error) {
+      console.error('Error clearing scan logs:', error);
+    }
+  },
+
+  // Scan Profile
+  async setScanProfile(profile: ScanProfile): Promise<void> {
+    try {
+      await AsyncStorage.setItem(KEYS.SCAN_PROFILE, profile);
+    } catch (error) {
+      console.error('Error setting scan profile:', error);
+    }
+  },
+
+  async getScanProfile(): Promise<ScanProfile> {
+    try {
+      const profile = await AsyncStorage.getItem(KEYS.SCAN_PROFILE);
+      return (profile as ScanProfile) || 'standard';
+    } catch (error) {
+      console.error('Error getting scan profile:', error);
+      return 'standard';
     }
   },
 };

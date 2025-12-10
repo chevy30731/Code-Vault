@@ -19,6 +19,13 @@ export interface QuantumQRCode {
   updatedAt: number;
   category?: string;
   tags?: string[];
+  expiration?: {
+    type: 'time' | 'scans' | 'both';
+    expiresAt?: number; // Unix timestamp
+    maxScans?: number;
+    currentScans?: number;
+  };
+  watermark?: string;
 }
 
 export interface QuantumLayerConfig {
@@ -26,6 +33,7 @@ export interface QuantumLayerConfig {
   name: string;
   data: string;
   description?: string;
+  unlockAfterScans?: number;
 }
 
 export interface UnlockedLayer extends QuantumLayer {

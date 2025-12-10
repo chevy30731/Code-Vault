@@ -12,7 +12,8 @@ export const quantumQRService = {
   async generateQuantumQR(
     name: string,
     layerConfigs: QuantumLayerConfig[],
-    systemPIN?: string
+    systemPIN?: string,
+    expiration?: QuantumQRCode['expiration']
   ): Promise<QuantumQRCode> {
     const layers: QuantumLayer[] = [];
 
@@ -52,6 +53,8 @@ export const quantumQRService = {
       layers,
       createdAt: Date.now(),
       updatedAt: Date.now(),
+      expiration: expiration ? { ...expiration, currentScans: 0 } : undefined,
+      watermark: 'Code Vault',
     };
 
     return quantumQR;
@@ -87,6 +90,8 @@ export const quantumQRService = {
         desc: layer.description,
       })),
       ts: quantumQR.createdAt,
+      exp: quantumQR.expiration,
+      wm: quantumQR.watermark,
     };
 
     return `${QUANTUM_QR_PREFIX}${JSON.stringify(compactData)}`;
@@ -118,6 +123,8 @@ export const quantumQRService = {
         layers,
         createdAt: parsed.ts,
         updatedAt: parsed.ts,
+        expiration: parsed.exp,
+        watermark: parsed.wm,
       };
     } catch (error) {
       console.error('Error decoding quantum QR:', error);
@@ -198,5 +205,57 @@ export const quantumQRService = {
       private: this.getPrivateLayers(quantumQR).length,
       hidden: this.getHiddenLayers(quantumQR).length,
     };
+  },
+
+  isExpired(quantumQR: QuantumQRCode): boolean {
+    if (!quantumQR.expiration) return false;
+
+    const { type, expiresAt, maxScans, currentScans } = quantumQR.expiration;
+
+    if (type === 'time' || type === 'both') {
+      if (expiresAt && Date.now() > expiresAt) return true;
+    }
+
+    if (type === 'scans' || type === 'both') {
+      if (maxScans && currentScans && currentScans >= maxScans) return true;
+    }
+
+    return false;
+  },
+
+  incrementScanCount(quantumQR: QuantumQRCode): QuantumQRCode {
+    if (!quantumQR.expiration) return quantumQR;
+
+    return {
+      ...quantumQR,
+      expiration: {
+        ...quantumQR.expiration,
+        currentScans: (quantumQR.expiration.currentScans || 0) + 1,
+      },
+    };
+  },
+
+  getExpirationStatus(quantumQR: QuantumQRCode): 'valid' | 'expired' | 'near-expiry' {
+    if (!quantumQR.expiration) return 'valid';
+    if (this.isExpired(quantumQR)) return 'expired';
+
+    const { type, expiresAt, maxScans, currentScans } = quantumQR.expiration;
+
+    // Check for near expiry
+    if (type === 'time' || type === 'both') {
+      if (expiresAt) {
+        const timeRemaining = expiresAt - Date.now();
+        const oneHour = 60 * 60 * 1000;
+        if (timeRemaining < oneHour) return 'near-expiry';
+      }
+    }
+
+    if (type === 'scans' || type === 'both') {
+      if (maxScans && currentScans) {
+        if (currentScans >= maxScans - 1) return 'near-expiry';
+      }
+    }
+
+    return 'valid';
   },
 };
