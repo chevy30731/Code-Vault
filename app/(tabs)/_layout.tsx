@@ -4,7 +4,7 @@ import { Platform } from 'react-native';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 
 export default function TabLayout() {
-  const insets = useSafeAreaInsets();
+  const insets = Platform.OS === 'web' ? { top: 0, bottom: 0, left: 0, right: 0 } : useSafeAreaInsets();
 
   return (
     <Tabs
