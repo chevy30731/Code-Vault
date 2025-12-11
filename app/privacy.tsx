@@ -110,21 +110,33 @@ export default function PrivacyScreen() {
         </View>
 
         <View style={styles.section}>
-          <Text style={styles.sectionTitle}>Premium Purchase</Text>
+          <Text style={styles.sectionTitle}>Premium Purchase & Network Usage</Text>
           <Text style={styles.paragraph}>
             Premium purchases are processed through your device's app store (Apple App Store or
             Google Play Store). We do not handle payment information directly. The app store shares
             only the minimum information required to verify your purchase status. This typically
             includes a transaction ID and purchase confirmation, but never your payment details.
           </Text>
-        </View>
-
-        <View style={styles.section}>
-          <Text style={styles.sectionTitle}>No Internet Required</Text>
           <Text style={styles.paragraph}>
-            Code Vault is designed to work completely offline. The app does not make network
-            requests, does not connect to any servers, and does not transmit any data over the
-            internet. All functionality is performed locally on your device.
+            <Text style={styles.bold}>Limited Network Access:</Text> Code Vault only uses internet
+            connectivity for:
+          </Text>
+          <View style={styles.listItem}>
+            <MaterialIcons name="shopping-cart" size={20} color="#00D9FF" />
+            <Text style={styles.listText}>
+              Communicating with Google Play Billing or Apple App Store to process premium upgrades
+            </Text>
+          </View>
+          <View style={styles.listItem}>
+            <MaterialIcons name="verified-user" size={20} color="#00D9FF" />
+            <Text style={styles.listText}>
+              Verifying your purchase status when you reinstall the app
+            </Text>
+          </View>
+          <Text style={styles.paragraph}>
+            <Text style={styles.bold}>All other features work completely offline.</Text> QR code
+            scanning, generation, encryption, and artifact tagging do not require internet access.
+            Your QR data, scan history, and artifacts never leave your device.
           </Text>
         </View>
 

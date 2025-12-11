@@ -36,14 +36,14 @@
         "backgroundColor": "#ffffff"
       },
       "permissions": [
-        "CAMERA"
+        "CAMERA",
+        "INTERNET",
+        "ACCESS_NETWORK_STATE"
       ],
       "blockedPermissions": [
         "ACTIVITY_RECOGNITION",
         "android.permission.ACTIVITY_RECOGNITION",
         "com.google.android.gms.permission.ACTIVITY_RECOGNITION",
-        "INTERNET",
-        "ACCESS_NETWORK_STATE",
         "ACCESS_FINE_LOCATION",
         "ACCESS_COARSE_LOCATION",
         "READ_PHONE_STATE",
@@ -75,7 +75,8 @@
         {
           "cameraPermission": "Code Vault needs camera access to scan QR codes."
         }
-      ]
+      ],
+      "expo-in-app-purchases"
     ],
     "experiments": {
       "typedRoutes": true

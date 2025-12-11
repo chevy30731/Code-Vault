@@ -1,14 +1,34 @@
-import React from 'react';
-import { View, Text, StyleSheet, TouchableOpacity } from 'react-native';
+import React, { useState } from 'react';
+import { View, Text, StyleSheet, TouchableOpacity, Modal, ActivityIndicator } from 'react-native';
 import { MaterialIcons } from '@expo/vector-icons';
 import { usePremium } from '@/hooks/usePremium';
 
 interface PremiumCardProps {
-  onUpgrade: () => void;
+  onUpgrade?: () => void;
 }
 
 export function PremiumCard({ onUpgrade }: PremiumCardProps) {
-  const { isPremium, remainingGenerations } = usePremium();
+  const { isPremium, remainingGenerations, upgradeToPremium, purchasing } = usePremium();
+  const [showModal, setShowModal] = useState(false);
+  const [errorMessage, setErrorMessage] = useState('');
+
+  const handleUpgrade = async () => {
+    setShowModal(false);
+    setErrorMessage('');
+
+    const result = await upgradeToPremium();
+
+    if (result.success) {
+      // Purchase initiated successfully
+      // The purchase listener in usePremium will handle completion
+    } else {
+      // Show error
+      setErrorMessage(result.error || 'Purchase failed. Please try again.');
+      setTimeout(() => setErrorMessage(''), 5000);
+    }
+
+    onUpgrade?.();
+  };
 
   if (isPremium) {
     return (
@@ -20,30 +40,89 @@ export function PremiumCard({ onUpgrade }: PremiumCardProps) {
   }
 
   return (
-    <View style={styles.card}>
-      <View style={styles.header}>
-        <MaterialIcons name="diamond" size={32} color="#00D9FF" />
-        <Text style={styles.title}>Upgrade to Premium</Text>
+    <>
+      <View style={styles.card}>
+        <View style={styles.header}>
+          <MaterialIcons name="diamond" size={32} color="#00D9FF" />
+          <Text style={styles.title}>Upgrade to Premium</Text>
+        </View>
+
+        <View style={styles.limitInfo}>
+          <Text style={styles.limitText}>
+            {remainingGenerations} / {10} free generations remaining
+          </Text>
+        </View>
+
+        <View style={styles.features}>
+          <FeatureItem icon="all-inclusive" text="Unlimited QR Generation" />
+          <FeatureItem icon="lock" text="4-Digit PIN Protection" />
+          <FeatureItem icon="shield" text="Encrypted Sharing" />
+          <FeatureItem icon="layers" text="Multi-Layer Quantum QR" />
+          <FeatureItem icon="payment" text="One-Time Payment: $4.99" />
+        </View>
+
+        {errorMessage ? (
+          <View style={styles.errorBanner}>
+            <MaterialIcons name="error" size={20} color="#FFFFFF" />
+            <Text style={styles.errorText}>{errorMessage}</Text>
+          </View>
+        ) : null}
+
+        <TouchableOpacity
+          style={[styles.upgradeButton, purchasing && styles.upgradeButtonDisabled]}
+          onPress={() => setShowModal(true)}
+          disabled={purchasing}
+        >
+          {purchasing ? (
+            <>
+              <ActivityIndicator size="small" color="#000" />
+              <Text style={styles.upgradeButtonText}>Processing...</Text>
+            </>
+          ) : (
+            <>
+              <Text style={styles.upgradeButtonText}>Upgrade Now</Text>
+              <MaterialIcons name="arrow-forward" size={20} color="#000" />
+            </>
+          )}
+        </TouchableOpacity>
       </View>
 
-      <View style={styles.limitInfo}>
-        <Text style={styles.limitText}>
-          {remainingGenerations} / {10} free generations remaining
-        </Text>
-      </View>
+      <Modal
+        visible={showModal}
+        transparent
+        animationType="fade"
+        onRequestClose={() => setShowModal(false)}
+      >
+        <View style={styles.modalOverlay}>
+          <View style={styles.modalContent}>
+            <MaterialIcons name="diamond" size={48} color="#00D9FF" />
+            <Text style={styles.modalTitle}>Upgrade to Premium?</Text>
+            <Text style={styles.modalMessage}>
+              You'll be charged $4.99 (one-time payment) through Google Play Store.
+            </Text>
 
-      <View style={styles.features}>
-        <FeatureItem icon="all-inclusive" text="Unlimited QR Generation" />
-        <FeatureItem icon="lock" text="4-Digit PIN Protection" />
-        <FeatureItem icon="shield" text="Encrypted Sharing" />
-        <FeatureItem icon="payment" text="One-Time Payment: $4.99" />
-      </View>
+            <View style={styles.modalBenefits}>
+              <Text style={styles.benefitItem}>✓ Unlimited QR Generation</Text>
+              <Text style={styles.benefitItem}>✓ PIN Protection</Text>
+              <Text style={styles.benefitItem}>✓ Encrypted Sharing</Text>
+              <Text style={styles.benefitItem}>✓ Multi-Layer Quantum QR</Text>
+            </View>
 
-      <TouchableOpacity style={styles.upgradeButton} onPress={onUpgrade}>
-        <Text style={styles.upgradeButtonText}>Upgrade Now</Text>
-        <MaterialIcons name="arrow-forward" size={20} color="#000" />
-      </TouchableOpacity>
-    </View>
+            <View style={styles.modalButtons}>
+              <TouchableOpacity
+                style={styles.modalButtonCancel}
+                onPress={() => setShowModal(false)}
+              >
+                <Text style={styles.modalButtonCancelText}>Cancel</Text>
+              </TouchableOpacity>
+              <TouchableOpacity style={styles.modalButtonConfirm} onPress={handleUpgrade}>
+                <Text style={styles.modalButtonConfirmText}>Continue to Payment</Text>
+              </TouchableOpacity>
+            </View>
+          </View>
+        </View>
+      </Modal>
+    </>
   );
 }
 
@@ -102,6 +181,20 @@ const styles = StyleSheet.create({
     fontSize: 15,
     marginLeft: 12,
   },
+  errorBanner: {
+    backgroundColor: '#FF4444',
+    borderRadius: 8,
+    padding: 12,
+    marginBottom: 16,
+    flexDirection: 'row',
+    alignItems: 'center',
+  },
+  errorText: {
+    color: '#FFFFFF',
+    fontSize: 14,
+    marginLeft: 8,
+    flex: 1,
+  },
   upgradeButton: {
     backgroundColor: '#00D9FF',
     borderRadius: 12,
@@ -110,11 +203,14 @@ const styles = StyleSheet.create({
     alignItems: 'center',
     justifyContent: 'center',
   },
+  upgradeButtonDisabled: {
+    opacity: 0.6,
+  },
   upgradeButtonText: {
     color: '#000000',
     fontSize: 16,
     fontWeight: '700',
-    marginRight: 8,
+    marginHorizontal: 8,
   },
   premiumBadge: {
     flexDirection: 'row',
@@ -133,5 +229,75 @@ const styles = StyleSheet.create({
     fontSize: 16,
     fontWeight: '700',
     marginLeft: 8,
+  },
+  modalOverlay: {
+    flex: 1,
+    backgroundColor: 'rgba(0, 0, 0, 0.85)',
+    justifyContent: 'center',
+    alignItems: 'center',
+    padding: 20,
+  },
+  modalContent: {
+    backgroundColor: '#1A1A2E',
+    borderRadius: 20,
+    padding: 24,
+    width: '100%',
+    maxWidth: 400,
+    alignItems: 'center',
+    borderWidth: 1,
+    borderColor: '#00D9FF',
+  },
+  modalTitle: {
+    fontSize: 22,
+    fontWeight: '700',
+    color: '#FFFFFF',
+    marginTop: 16,
+    marginBottom: 8,
+  },
+  modalMessage: {
+    fontSize: 15,
+    color: '#CCCCCC',
+    textAlign: 'center',
+    lineHeight: 22,
+    marginBottom: 20,
+  },
+  modalBenefits: {
+    width: '100%',
+    marginBottom: 24,
+  },
+  benefitItem: {
+    fontSize: 15,
+    color: '#00D9FF',
+    marginBottom: 8,
+    fontWeight: '600',
+  },
+  modalButtons: {
+    flexDirection: 'row',
+    gap: 12,
+    width: '100%',
+  },
+  modalButtonCancel: {
+    flex: 1,
+    backgroundColor: '#333344',
+    borderRadius: 12,
+    paddingVertical: 14,
+    alignItems: 'center',
+  },
+  modalButtonCancelText: {
+    color: '#FFFFFF',
+    fontSize: 16,
+    fontWeight: '600',
+  },
+  modalButtonConfirm: {
+    flex: 1,
+    backgroundColor: '#00D9FF',
+    borderRadius: 12,
+    paddingVertical: 14,
+    alignItems: 'center',
+  },
+  modalButtonConfirmText: {
+    color: '#000000',
+    fontSize: 16,
+    fontWeight: '700',
   },
 });
