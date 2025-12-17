@@ -9,34 +9,34 @@ interface PremiumCardProps {
 
 export function PremiumCard({ onUpgrade }: PremiumCardProps) {
   const { isPremium, remainingGenerations, upgradeToPremium, purchasing } = usePremium();
-  const [showConfirm, setShowConfirm] = useState(false);
-  const [showSuccess, setShowSuccess] = useState(false);
+  const [showModal, setShowModal] = useState(false);
   const [errorMessage, setErrorMessage] = useState('');
 
-  const handleUpgradeRequest = () => {
-    setShowConfirm(true);
-  };
-
-  const handleConfirmUpgrade = async () => {
-    setShowConfirm(false);
+  const handleUpgrade = async () => {
+    setShowModal(false);
     setErrorMessage('');
 
     const result = await upgradeToPremium();
 
     if (result.success) {
-      setShowSuccess(true);
-      setTimeout(() => setShowSuccess(false), 3000);
+      // Purchase initiated successfully
+      // The purchase listener in usePremium will handle completion
     } else {
-      setErrorMessage(result.error || 'Purchase failed');
+      // Show error
+      setErrorMessage(result.error || 'Purchase failed. Please try again.');
       setTimeout(() => setErrorMessage(''), 5000);
     }
 
     onUpgrade?.();
   };
 
-  // Don't show card if already premium
   if (isPremium) {
-    return null;
+    return (
+      <View style={styles.premiumBadge}>
+        <MaterialIcons name="verified" size={20} color="#00D9FF" />
+        <Text style={styles.premiumBadgeText}>Premium Active</Text>
+      </View>
+    );
   }
 
   return (
@@ -70,7 +70,7 @@ export function PremiumCard({ onUpgrade }: PremiumCardProps) {
 
         <TouchableOpacity
           style={[styles.upgradeButton, purchasing && styles.upgradeButtonDisabled]}
-          onPress={handleUpgradeRequest}
+          onPress={() => setShowModal(true)}
           disabled={purchasing}
         >
           {purchasing ? (
@@ -87,14 +87,18 @@ export function PremiumCard({ onUpgrade }: PremiumCardProps) {
         </TouchableOpacity>
       </View>
 
-      {/* Confirmation Modal */}
-      <Modal visible={showConfirm} transparent animationType="fade">
+      <Modal
+        visible={showModal}
+        transparent
+        animationType="fade"
+        onRequestClose={() => setShowModal(false)}
+      >
         <View style={styles.modalOverlay}>
           <View style={styles.modalContent}>
             <MaterialIcons name="diamond" size={48} color="#00D9FF" />
             <Text style={styles.modalTitle}>Upgrade to Premium?</Text>
             <Text style={styles.modalMessage}>
-              You'll be charged $4.99 (one-time payment) through {Platform.OS === 'ios' ? 'Apple App Store' : 'Google Play Store'}.
+              You'll be charged $4.99 (one-time payment) through Google Play Store.
             </Text>
 
             <View style={styles.modalBenefits}>
@@ -107,36 +111,14 @@ export function PremiumCard({ onUpgrade }: PremiumCardProps) {
             <View style={styles.modalButtons}>
               <TouchableOpacity
                 style={styles.modalButtonCancel}
-                onPress={() => setShowConfirm(false)}
+                onPress={() => setShowModal(false)}
               >
                 <Text style={styles.modalButtonCancelText}>Cancel</Text>
               </TouchableOpacity>
-              <TouchableOpacity 
-                style={styles.modalButtonConfirm} 
-                onPress={handleConfirmUpgrade}
-              >
-                <Text style={styles.modalButtonConfirmText}>Continue</Text>
+              <TouchableOpacity style={styles.modalButtonConfirm} onPress={handleUpgrade}>
+                <Text style={styles.modalButtonConfirmText}>Continue to Payment</Text>
               </TouchableOpacity>
             </View>
-          </View>
-        </View>
-      </Modal>
-
-      {/* Success Modal */}
-      <Modal visible={showSuccess} transparent animationType="fade">
-        <View style={styles.modalOverlay}>
-          <View style={styles.modalContent}>
-            <MaterialIcons name="check-circle" size={48} color="#4CAF50" />
-            <Text style={styles.modalTitle}>Premium Activated!</Text>
-            <Text style={styles.modalMessage}>
-              You now have unlimited access to all premium features.
-            </Text>
-            <TouchableOpacity
-              style={[styles.modalButtonConfirm, { width: '100%' }]}
-              onPress={() => setShowSuccess(false)}
-            >
-              <Text style={styles.modalButtonConfirmText}>Got It</Text>
-            </TouchableOpacity>
           </View>
         </View>
       </Modal>
@@ -229,6 +211,24 @@ const styles = StyleSheet.create({
     fontSize: 16,
     fontWeight: '700',
     marginHorizontal: 8,
+  },
+  premiumBadge: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    backgroundColor: '#00D9FF22',
+    borderRadius: 12,
+    paddingVertical: 12,
+    paddingHorizontal: 16,
+    marginHorizontal: 16,
+    marginVertical: 12,
+    borderWidth: 1,
+    borderColor: '#00D9FF',
+  },
+  premiumBadgeText: {
+    color: '#00D9FF',
+    fontSize: 16,
+    fontWeight: '700',
+    marginLeft: 8,
   },
   modalOverlay: {
     flex: 1,

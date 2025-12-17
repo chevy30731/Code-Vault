@@ -2,7 +2,7 @@
   "expo": {
     "name": "Code Vault",
     "slug": "code-vault",
-    "version": "2.1.0",
+    "version": "2.0.0",
     "orientation": "portrait",
     "icon": "./assets/images/logo.png",
     "scheme": "codevault",
@@ -28,9 +28,9 @@
         }
       }
     },
-    "android": {
+        "android": {
       "package": "app.onhercules.coin_vault.twa",
-      "versionCode": 3,
+      "versionCode": 2,
       "adaptiveIcon": {
         "foregroundImage": "./assets/images/logo.png",
         "backgroundColor": "#ffffff"
