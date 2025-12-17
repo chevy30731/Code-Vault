@@ -1,14 +1,9 @@
 import { useState, useEffect } from 'react';
 import { Platform } from 'react-native';
+import * as InAppPurchases from 'expo-in-app-purchases';
 import { storageService } from '@/services/storage';
 import type { PremiumStatus } from '@/types/qr';
 import { FREE_GENERATION_LIMIT } from '@/types/qr';
-
-// Only import IAP on native platforms (not web)
-let InAppPurchases: any = null;
-if (Platform.OS !== 'web') {
-  InAppPurchases = require('expo-in-app-purchases');
-}
 
 const PREMIUM_PRODUCT_ID = Platform.select({
   ios: 'codevault_premium',
@@ -27,44 +22,34 @@ export function usePremium() {
   useEffect(() => {
     initialize();
     return () => {
-      if (Platform.OS !== 'web' && InAppPurchases) {
-        InAppPurchases.disconnectAsync();
-      }
+      InAppPurchases.disconnectAsync();
     };
   }, []);
 
   const initialize = async () => {
     try {
-      // Load local premium status
+      // Load local premium status first
       const premiumStatus = await storageService.getPremiumStatus();
       setStatus(premiumStatus);
 
-      // Skip IAP on web
-      if (Platform.OS === 'web') {
-        setLoading(false);
-        return;
-      }
+      // Connect to store
+      await InAppPurchases.connectAsync();
 
-      // Connect to store on native platforms
-      if (InAppPurchases) {
-        await InAppPurchases.connectAsync();
+      // Check for existing purchases
+      const { results } = await InAppPurchases.getPurchaseHistoryAsync();
+      const hasPremiumPurchase = results?.some(
+        (purchase) => purchase.productId === PREMIUM_PRODUCT_ID && purchase.acknowledged
+      );
 
-        // Check for existing purchases
-        const { results } = await InAppPurchases.getPurchaseHistoryAsync();
-        const hasPremiumPurchase = results?.some(
-          (purchase) => purchase.productId === PREMIUM_PRODUCT_ID && purchase.acknowledged
-        );
-
-        if (hasPremiumPurchase && !premiumStatus.isPremium) {
-          // User purchased on another device or reinstalled
-          const newStatus: PremiumStatus = {
-            isPremium: true,
-            purchaseDate: Date.now(),
-            generationCount: premiumStatus.generationCount,
-          };
-          await storageService.setPremiumStatus(newStatus);
-          setStatus(newStatus);
-        }
+      if (hasPremiumPurchase && !premiumStatus.isPremium) {
+        // User purchased on another device or reinstalled
+        const newStatus: PremiumStatus = {
+          isPremium: true,
+          purchaseDate: Date.now(),
+          generationCount: premiumStatus.generationCount,
+        };
+        await storageService.setPremiumStatus(newStatus);
+        setStatus(newStatus);
       }
     } catch (error) {
       console.error('Error initializing IAP:', error);
@@ -77,25 +62,6 @@ export function usePremium() {
     success: boolean;
     error?: string;
   }> => {
-    // Web fallback: enable premium locally (for development/testing)
-    if (Platform.OS === 'web') {
-      const newStatus: PremiumStatus = {
-        isPremium: true,
-        purchaseDate: Date.now(),
-        generationCount: status.generationCount,
-      };
-      await storageService.setPremiumStatus(newStatus);
-      setStatus(newStatus);
-      return { success: true };
-    }
-
-    if (!InAppPurchases) {
-      return {
-        success: false,
-        error: 'In-app purchases not available on this platform.',
-      };
-    }
-
     setPurchasing(true);
     try {
       // Get available products
