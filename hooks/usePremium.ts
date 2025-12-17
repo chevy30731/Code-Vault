@@ -4,16 +4,20 @@ import { storageService } from '@/services/storage';
 import type { PremiumStatus } from '@/types/qr';
 import { FREE_GENERATION_LIMIT } from '@/types/qr';
 
-// Dynamic import helper - only load IAP on native platforms
-const getIAPModule = async () => {
-  if (Platform.OS === 'web') {
-    return null;
-  }
+// Conditional import helper for native platforms only
+let InAppPurchases: any = null;
+let IAPResponseCode: any = null;
+
+const initializeIAP = async () => {
+  if (Platform.OS === 'web') return null;
+  
   try {
-    const InAppPurchases = await import('expo-in-app-purchases');
-    return InAppPurchases;
+    const iapModule = await import('expo-in-app-purchases');
+    InAppPurchases = iapModule;
+    IAPResponseCode = iapModule.IAPResponseCode;
+    return iapModule;
   } catch (error) {
-    console.warn('IAP module not available on this platform:', error);
+    console.warn('IAP module unavailable:', error);
     return null;
   }
 };
@@ -34,48 +38,45 @@ export function usePremium() {
 
   useEffect(() => {
     initialize();
+    
     return () => {
-      // Cleanup is handled in initialize for native platforms
-      if (Platform.OS !== 'web') {
-        getIAPModule().then((IAP) => {
-          if (IAP) {
-            IAP.disconnectAsync();
-          }
-        });
+      // Cleanup IAP connection on unmount (native only)
+      if (Platform.OS !== 'web' && InAppPurchases) {
+        InAppPurchases.disconnectAsync().catch(() => {});
       }
     };
   }, []);
 
   const initialize = async () => {
     try {
-      // Load local premium status first
+      // Load local premium status
       const premiumStatus = await storageService.getPremiumStatus();
       setStatus(premiumStatus);
 
-      // Skip IAP on web platform (not supported)
+      // Skip IAP initialization on web
       if (Platform.OS === 'web') {
         setLoading(false);
         return;
       }
 
-      // Dynamically load IAP module (native only)
-      const InAppPurchases = await getIAPModule();
-      if (!InAppPurchases) {
+      // Initialize IAP module
+      const iapModule = await initializeIAP();
+      if (!iapModule) {
         setLoading(false);
         return;
       }
 
       // Connect to store
-      await InAppPurchases.connectAsync();
+      await iapModule.connectAsync();
 
-      // Check for existing purchases
-      const { results } = await InAppPurchases.getPurchaseHistoryAsync();
-      const hasPremiumPurchase = results?.some(
-        (purchase) => purchase.productId === PREMIUM_PRODUCT_ID && purchase.acknowledged
+      // Check purchase history
+      const { results } = await iapModule.getPurchaseHistoryAsync();
+      const hasPremium = results?.some(
+        (p: any) => p.productId === PREMIUM_PRODUCT_ID && p.acknowledged
       );
 
-      if (hasPremiumPurchase && !premiumStatus.isPremium) {
-        // User purchased on another device or reinstalled
+      if (hasPremium && !premiumStatus.isPremium) {
+        // Restore purchase
         const newStatus: PremiumStatus = {
           isPremium: true,
           purchaseDate: Date.now(),
@@ -85,7 +86,7 @@ export function usePremium() {
         setStatus(newStatus);
       }
     } catch (error) {
-      console.error('Error initializing IAP:', error);
+      console.error('IAP initialization error:', error);
     } finally {
       setLoading(false);
     }
@@ -96,8 +97,9 @@ export function usePremium() {
     error?: string;
   }> => {
     setPurchasing(true);
+
     try {
-      // Web fallback: Just toggle premium locally (for testing)
+      // Web fallback: Local toggle for testing
       if (Platform.OS === 'web') {
         const newStatus: PremiumStatus = {
           isPremium: true,
@@ -110,39 +112,42 @@ export function usePremium() {
         return { success: true };
       }
 
-      // Dynamically load IAP module (native only)
-      const InAppPurchases = await getIAPModule();
+      // Initialize IAP if not already done
+      if (!InAppPurchases) {
+        await initializeIAP();
+      }
+
       if (!InAppPurchases) {
         setPurchasing(false);
         return {
           success: false,
-          error: 'In-app purchases not available on this platform.',
+          error: 'In-app purchases not available on this platform',
         };
       }
 
-      // Get available products
-      const { results: products } = await InAppPurchases.getProductsAsync([PREMIUM_PRODUCT_ID]);
+      // Get products
+      const { results: products } = await InAppPurchases.getProductsAsync([
+        PREMIUM_PRODUCT_ID,
+      ]);
 
       if (!products || products.length === 0) {
         setPurchasing(false);
         return {
           success: false,
-          error: 'Premium upgrade not available. Please try again later.',
+          error: 'Premium upgrade currently unavailable. Please try again later.',
         };
       }
 
-      // Purchase the product
-      await InAppPurchases.purchaseItemAsync(PREMIUM_PRODUCT_ID);
-
-      // Set up purchase listener
-      InAppPurchases.setPurchaseListener(async ({ responseCode, results, errorCode }) => {
-        if (responseCode === InAppPurchases.IAPResponseCode.OK) {
-          const purchase = results?.[0];
-          if (purchase && purchase.productId === PREMIUM_PRODUCT_ID) {
+      // Set up purchase listener BEFORE starting purchase
+      InAppPurchases.setPurchaseListener(async ({ responseCode, results, errorCode }: any) => {
+        if (responseCode === IAPResponseCode.OK && results?.[0]) {
+          const purchase = results[0];
+          
+          if (purchase.productId === PREMIUM_PRODUCT_ID) {
             // Finalize transaction
             await InAppPurchases.finishTransactionAsync(purchase, true);
 
-            // Update local status
+            // Update status
             const newStatus: PremiumStatus = {
               isPremium: true,
               purchaseDate: Date.now(),
@@ -150,18 +155,22 @@ export function usePremium() {
             };
             await storageService.setPremiumStatus(newStatus);
             setStatus(newStatus);
+            setPurchasing(false);
           }
-        } else if (responseCode === InAppPurchases.IAPResponseCode.USER_CANCELED) {
-          // User cancelled, do nothing
+        } else if (responseCode === IAPResponseCode.USER_CANCELED) {
+          setPurchasing(false);
         } else {
-          console.error('Purchase error:', errorCode);
+          console.error('Purchase error code:', errorCode);
+          setPurchasing(false);
         }
-        setPurchasing(false);
       });
+
+      // Initiate purchase
+      await InAppPurchases.purchaseItemAsync(PREMIUM_PRODUCT_ID);
 
       return { success: true };
     } catch (error: any) {
-      console.error('Error upgrading to premium:', error);
+      console.error('Purchase error:', error);
       setPurchasing(false);
       return {
         success: false,
