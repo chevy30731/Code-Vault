@@ -7,7 +7,7 @@
     "icon": "./assets/images/logo.png",
     "scheme": "codevault",
     "userInterfaceStyle": "automatic",
-    "newArchEnabled": false,
+    "newArchEnabled": true,
     "privacy": "public",
     "extra": {
       "enableCrashReporting": false,
@@ -20,7 +20,7 @@
     },
     "ios": {
       "supportsTablet": true,
-      "bundleIdentifier": "app.onhercules.codevault",
+      "bundleIdentifier": "app.onhercules.coin-vault.twa",
       "infoPlist": {
         "NSCameraUsageDescription": "Code Vault needs camera access to scan QR codes. Your camera is only used for real-time QR code detection and no images are saved or uploaded.",
         "NSAppTransportSecurity": {
@@ -29,7 +29,7 @@
       }
     },
         "android": {
-      "package": "app.onhercules.codevault",
+      "package": "app.onhercules.coin_vault.twa",
       "versionCode": 2,
       "adaptiveIcon": {
         "foregroundImage": "./assets/images/logo.png",
