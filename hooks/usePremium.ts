@@ -1,9 +1,17 @@
 import { useState, useEffect } from 'react';
 import { Platform } from 'react-native';
-import * as InAppPurchases from 'expo-in-app-purchases';
 import { storageService } from '@/services/storage';
 import type { PremiumStatus } from '@/types/qr';
 import { FREE_GENERATION_LIMIT } from '@/types/qr';
+
+// Dynamic import helper - only load IAP on native platforms
+const getIAPModule = async () => {
+  if (Platform.OS === 'web') {
+    return null;
+  }
+  const InAppPurchases = await import('expo-in-app-purchases');
+  return InAppPurchases;
+};
 
 const PREMIUM_PRODUCT_ID = Platform.select({
   ios: 'codevault_premium',
@@ -22,9 +30,13 @@ export function usePremium() {
   useEffect(() => {
     initialize();
     return () => {
-      // Only disconnect on native platforms
+      // Cleanup is handled in initialize for native platforms
       if (Platform.OS !== 'web') {
-        InAppPurchases.disconnectAsync();
+        getIAPModule().then((IAP) => {
+          if (IAP) {
+            IAP.disconnectAsync();
+          }
+        });
       }
     };
   }, []);
@@ -41,7 +53,14 @@ export function usePremium() {
         return;
       }
 
-      // Connect to store (native only)
+      // Dynamically load IAP module (native only)
+      const InAppPurchases = await getIAPModule();
+      if (!InAppPurchases) {
+        setLoading(false);
+        return;
+      }
+
+      // Connect to store
       await InAppPurchases.connectAsync();
 
       // Check for existing purchases
@@ -86,10 +105,21 @@ export function usePremium() {
         return { success: true };
       }
 
-      // Get available products (native only)
+      // Dynamically load IAP module (native only)
+      const InAppPurchases = await getIAPModule();
+      if (!InAppPurchases) {
+        setPurchasing(false);
+        return {
+          success: false,
+          error: 'In-app purchases not available on this platform.',
+        };
+      }
+
+      // Get available products
       const { results: products } = await InAppPurchases.getProductsAsync([PREMIUM_PRODUCT_ID]);
 
       if (!products || products.length === 0) {
+        setPurchasing(false);
         return {
           success: false,
           error: 'Premium upgrade not available. Please try again later.',
