@@ -22,7 +22,7 @@ export default function PrivacyScreen() {
         contentContainerStyle={[styles.scrollContent, { paddingBottom: insets.bottom + 24 }]}
       >
         <View style={styles.section}>
-          <Text style={styles.lastUpdated}>Last Updated: December 17, 2025</Text>
+          <Text style={styles.lastUpdated}>Last Updated: January 2024</Text>
         </View>
 
         <View style={styles.section}>
@@ -183,7 +183,7 @@ export default function PrivacyScreen() {
             If you have questions about this privacy policy or Code Vault's privacy practices,
             please contact us at:
           </Text>
-          <Text style={styles.contactText}>support@onhercules.app</Text>
+          <Text style={styles.contactText}>privacy@codevault.app</Text>
         </View>
 
         <View style={styles.footer}>
