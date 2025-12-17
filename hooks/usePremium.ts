@@ -22,7 +22,10 @@ export function usePremium() {
   useEffect(() => {
     initialize();
     return () => {
-      InAppPurchases.disconnectAsync();
+      // Only disconnect on native platforms
+      if (Platform.OS !== 'web') {
+        InAppPurchases.disconnectAsync();
+      }
     };
   }, []);
 
@@ -32,7 +35,13 @@ export function usePremium() {
       const premiumStatus = await storageService.getPremiumStatus();
       setStatus(premiumStatus);
 
-      // Connect to store
+      // Skip IAP on web platform (not supported)
+      if (Platform.OS === 'web') {
+        setLoading(false);
+        return;
+      }
+
+      // Connect to store (native only)
       await InAppPurchases.connectAsync();
 
       // Check for existing purchases
@@ -64,7 +73,20 @@ export function usePremium() {
   }> => {
     setPurchasing(true);
     try {
-      // Get available products
+      // Web fallback: Just toggle premium locally (for testing)
+      if (Platform.OS === 'web') {
+        const newStatus: PremiumStatus = {
+          isPremium: true,
+          purchaseDate: Date.now(),
+          generationCount: status.generationCount,
+        };
+        await storageService.setPremiumStatus(newStatus);
+        setStatus(newStatus);
+        setPurchasing(false);
+        return { success: true };
+      }
+
+      // Get available products (native only)
       const { results: products } = await InAppPurchases.getProductsAsync([PREMIUM_PRODUCT_ID]);
 
       if (!products || products.length === 0) {
