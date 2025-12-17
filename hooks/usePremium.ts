@@ -9,8 +9,13 @@ const getIAPModule = async () => {
   if (Platform.OS === 'web') {
     return null;
   }
-  const InAppPurchases = await import('expo-in-app-purchases');
-  return InAppPurchases;
+  try {
+    const InAppPurchases = await import('expo-in-app-purchases');
+    return InAppPurchases;
+  } catch (error) {
+    console.warn('IAP module not available on this platform:', error);
+    return null;
+  }
 };
 
 const PREMIUM_PRODUCT_ID = Platform.select({
