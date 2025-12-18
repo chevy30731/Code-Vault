@@ -29,13 +29,13 @@ export default function PrivacyScreen() {
           <Text style={styles.sectionTitle}>Our Privacy Commitment</Text>
           <Text style={styles.paragraph}>
             Code Vault is built with privacy as our foundation. We believe your data belongs to you,
-            and you alone. This policy explains exactly what data we do and don't collect, how we
+            and you alone. This policy explains exactly what data we do and do not collect, how we
             handle it, and your rights.
           </Text>
         </View>
 
         <View style={styles.section}>
-          <Text style={styles.sectionTitle}>Data We DON'T Collect</Text>
+          <Text style={styles.sectionTitle}>Data We DO NOT Collect</Text>
           <View style={styles.listItem}>
             <MaterialIcons name="block" size={20} color="#00D9FF" />
             <Text style={styles.listText}>No scan history or QR code content</Text>
@@ -73,7 +73,7 @@ export default function PrivacyScreen() {
           <View style={styles.listItem}>
             <MaterialIcons name="storage" size={20} color="#00D9FF" />
             <Text style={styles.listText}>
-              <Text style={styles.bold}>Generation Count:</Text> Number of QR codes you've
+              <Text style={styles.bold}>Generation Count:</Text> Number of QR codes you have
               generated (for free tier limits)
             </Text>
           </View>
@@ -141,7 +141,7 @@ export default function PrivacyScreen() {
         </View>
 
         <View style={styles.section}>
-          <Text style={styles.sectionTitle}>Children's Privacy</Text>
+          <Text style={styles.sectionTitle}>Children&apos;s Privacy</Text>
           <Text style={styles.paragraph}>
             Code Vault does not collect any personal information from anyone, including children
             under 13. The app is designed to be privacy-safe for all ages.
@@ -170,7 +170,7 @@ export default function PrivacyScreen() {
         <View style={styles.section}>
           <Text style={styles.sectionTitle}>Changes to This Policy</Text>
           <Text style={styles.paragraph}>
-            If we make changes to this privacy policy, we will update the "Last Updated" date at
+            If we make changes to this privacy policy, we will update the &quot;Last Updated&quot; date at
             the top. We will notify users of significant changes through an in-app notification on
             the next app update. However, our core privacy commitment will never change: your data
             stays on your device.
@@ -180,7 +180,7 @@ export default function PrivacyScreen() {
         <View style={styles.section}>
           <Text style={styles.sectionTitle}>Contact</Text>
           <Text style={styles.paragraph}>
-            If you have questions about this privacy policy or Code Vault's privacy practices,
+            If you have questions about this privacy policy or Code Vault&apos;s privacy practices,
             please contact us at:
           </Text>
           <Text style={styles.contactText}>privacy@codevault.app</Text>

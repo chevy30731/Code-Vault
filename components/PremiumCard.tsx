@@ -98,7 +98,7 @@ export function PremiumCard({ onUpgrade }: PremiumCardProps) {
             <MaterialIcons name="diamond" size={48} color="#00D9FF" />
             <Text style={styles.modalTitle}>Upgrade to Premium?</Text>
             <Text style={styles.modalMessage}>
-              You'll be charged $4.99 (one-time payment) through Google Play Store.
+              You will be charged $4.99 (one-time payment) through Google Play Store.
             </Text>
 
             <View style={styles.modalBenefits}>

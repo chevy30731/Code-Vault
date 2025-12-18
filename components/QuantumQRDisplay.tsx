@@ -35,6 +35,7 @@ export function QuantumQRDisplay({ quantumQR, systemPIN, onClose }: QuantumQRDis
   // Initialize with public layers unlocked
   React.useEffect(() => {
     initializeLayers();
+    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []);
 
   const initializeLayers = async () => {
@@ -78,7 +79,7 @@ export function QuantumQRDisplay({ quantumQR, systemPIN, onClose }: QuantumQRDis
       if (!success) {
         Alert.alert('Error', 'Could not share QR code');
       }
-    } catch (error) {
+    } catch {
       Alert.alert('Error', 'Failed to share');
     } finally {
       setIsSharing(false);

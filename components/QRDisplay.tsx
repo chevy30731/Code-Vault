@@ -70,7 +70,7 @@ export function QRDisplay({
       if (!success) {
         Alert.alert('Error', 'Could not share QR code. Please try again.');
       }
-    } catch (error) {
+    } catch {
       Alert.alert('Error', 'Failed to share QR code.');
     } finally {
       setIsSharing(false);
