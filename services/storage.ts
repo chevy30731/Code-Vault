@@ -226,4 +226,13 @@ export const storageService = {
       console.error('Error deleting quantum QR:', error);
     }
   },
+
+  // Categories (for generate screen)
+  async getCategories(): Promise<string[]> {
+    try {
+      return [];
+    } catch {
+      return [];
+    }
+  },
 };
