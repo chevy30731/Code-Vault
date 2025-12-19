@@ -131,7 +131,7 @@ export default function HistoryScreen() {
   };
 
   const renderLogItem = ({ item }: { item: ScanLog }) => {
-    const profile = SCAN_PROFILES.find((p) => p.id === item.profile);
+    const profile = SCAN_PROFILES.find((p) => p.type === item.profile);
     const color = threatDetectionService.getThreatColor(item.threatLevel);
 
     return (
@@ -268,17 +268,17 @@ export default function HistoryScreen() {
 
           {SCAN_PROFILES.map((profile) => (
             <TouchableOpacity
-              key={profile.id}
-              style={[styles.filterChip, selectedProfile === profile.id && styles.filterChipActive]}
-              onPress={() => setSelectedProfile(selectedProfile === profile.id ? 'all' : profile.id)}
+              key={profile.type}
+              style={[styles.filterChip, selectedProfile === profile.type && styles.filterChipActive]}
+              onPress={() => setSelectedProfile(selectedProfile === profile.type ? 'all' : profile.type)}
             >
               <MaterialIcons 
                 name={profile.icon as any} 
                 size={14} 
-                color={selectedProfile === profile.id ? '#000000' : profile.color} 
+                color={selectedProfile === profile.type ? '#000000' : profile.color} 
               />
-              <Text style={[styles.filterChipText, selectedProfile === profile.id && styles.filterChipTextActive]}>
-                {profile.name}
+              <Text style={[styles.filterChipText, selectedProfile === profile.type && styles.filterChipTextActive]}>
+                {profile.label}
               </Text>
             </TouchableOpacity>
           ))}
