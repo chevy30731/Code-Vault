@@ -1,124 +1,80 @@
 import React from 'react';
-import { View, Text, StyleSheet, TouchableOpacity, ScrollView } from 'react-native';
+import { View, Text, StyleSheet, TouchableOpacity } from 'react-native';
 import { MaterialIcons } from '@expo/vector-icons';
 import type { ScanProfile } from '@/types/scanLog';
 import { SCAN_PROFILES } from '@/types/scanLog';
 
 interface ScanProfileSelectorProps {
-  selectedProfile: ScanProfile;
+  selected: ScanProfile;
   onSelect: (profile: ScanProfile) => void;
 }
 
-export function ScanProfileSelector({ selectedProfile, onSelect }: ScanProfileSelectorProps) {
+export function ScanProfileSelector({ selected, onSelect }: ScanProfileSelectorProps) {
   return (
-    <ScrollView 
-      horizontal 
-      showsHorizontalScrollIndicator={false}
-      style={styles.container}
-      contentContainerStyle={styles.content}
-    >
-      {SCAN_PROFILES.map((profile) => {
-        const isSelected = selectedProfile === profile.id;
-        
-        return (
-          <TouchableOpacity
-            key={profile.id}
-            style={[
-              styles.profileCard,
-              isSelected && styles.profileCardActive,
-              { borderColor: profile.color + '33' },
-              isSelected && { borderColor: profile.color, backgroundColor: profile.color + '22' },
-            ]}
-            onPress={() => onSelect(profile.id)}
-          >
-            <MaterialIcons 
-              name={profile.icon as any} 
-              size={24} 
-              color={isSelected ? profile.color : '#666666'} 
-            />
-            <Text style={[
-              styles.profileName,
-              isSelected && { color: profile.color },
-            ]}>
-              {profile.name}
-            </Text>
-            <Text style={styles.profileDescription}>{profile.description}</Text>
-            
-            {/* Feature Badges */}
-            <View style={styles.features}>
-              {profile.autoCopy && (
-                <View style={[styles.featureBadge, { backgroundColor: profile.color + '22' }]}>
-                  <MaterialIcons name="content-copy" size={10} color={profile.color} />
-                </View>
-              )}
-              {profile.autoOpen && (
-                <View style={[styles.featureBadge, { backgroundColor: profile.color + '22' }]}>
-                  <MaterialIcons name="open-in-new" size={10} color={profile.color} />
-                </View>
-              )}
-              {profile.autoArchive && (
-                <View style={[styles.featureBadge, { backgroundColor: profile.color + '22' }]}>
-                  <MaterialIcons name="archive" size={10} color={profile.color} />
-                </View>
-              )}
-              {profile.addGPS && (
-                <View style={[styles.featureBadge, { backgroundColor: profile.color + '22' }]}>
-                  <MaterialIcons name="location-on" size={10} color={profile.color} />
-                </View>
-              )}
-            </View>
-          </TouchableOpacity>
-        );
-      })}
-    </ScrollView>
+    <View style={styles.container}>
+      <Text style={styles.title}>Scan Profile</Text>
+      <View style={styles.profiles}>
+        {SCAN_PROFILES.map((profile) => {
+          const isSelected = selected === profile.type;
+          
+          return (
+            <TouchableOpacity
+              key={profile.type}
+              style={[styles.profile, isSelected && styles.profileSelected]}
+              onPress={() => onSelect(profile.type)}
+            >
+              <MaterialIcons 
+                name={profile.icon as any} 
+                size={28} 
+                color={isSelected ? profile.color : '#666666'} 
+              />
+              <Text style={[
+                styles.profileLabel,
+                isSelected && { color: profile.color },
+              ]}>
+                {profile.label}
+              </Text>
+            </TouchableOpacity>
+          );
+        })}
+      </View>
+    </View>
   );
 }
 
 const styles = StyleSheet.create({
   container: {
-    maxHeight: 140,
+    padding: 16,
   },
-  content: {
-    paddingHorizontal: 16,
+  title: {
+    fontSize: 16,
+    fontWeight: '700',
+    color: '#FFFFFF',
+    marginBottom: 12,
+  },
+  profiles: {
+    flexDirection: 'row',
+    flexWrap: 'wrap',
     gap: 12,
   },
-  profileCard: {
-    width: 140,
+  profile: {
+    flex: 1,
+    minWidth: 100,
+    alignItems: 'center',
+    padding: 16,
     backgroundColor: '#1A1A2E',
-    borderRadius: 16,
-    padding: 12,
+    borderRadius: 12,
     borderWidth: 2,
-    alignItems: 'center',
+    borderColor: 'transparent',
   },
-  profileCardActive: {
-    transform: [{ scale: 1.05 }],
+  profileSelected: {
+    borderColor: '#00D9FF',
+    backgroundColor: '#00D9FF11',
   },
-  profileName: {
-    fontSize: 13,
-    fontWeight: '700',
+  profileLabel: {
+    fontSize: 12,
+    fontWeight: '600',
     color: '#666666',
     marginTop: 8,
-    textAlign: 'center',
-  },
-  profileDescription: {
-    fontSize: 10,
-    color: '#666666',
-    marginTop: 4,
-    textAlign: 'center',
-    lineHeight: 14,
-  },
-  features: {
-    flexDirection: 'row',
-    gap: 4,
-    marginTop: 8,
-    flexWrap: 'wrap',
-    justifyContent: 'center',
-  },
-  featureBadge: {
-    width: 18,
-    height: 18,
-    borderRadius: 9,
-    alignItems: 'center',
-    justifyContent: 'center',
   },
 });

@@ -1,80 +1,72 @@
-import type { QRData, ContactData, LocationData } from '@/types/qr';
+import type { QRCategory } from '@/types/qr';
 
 export const qrService = {
-  generateText(text: string): QRData {
-    return { type: 'text', data: text };
-  },
-
-  generateURL(url: string): QRData {
-    const formattedURL = url.startsWith('http') ? url : `https://${url}`;
-    return { type: 'url', data: formattedURL };
-  },
-
-  generateEmail(email: string, subject?: string, body?: string): QRData {
-    let data = `mailto:${email}`;
-    const params = [];
-    if (subject) params.push(`subject=${encodeURIComponent(subject)}`);
-    if (body) params.push(`body=${encodeURIComponent(body)}`);
-    if (params.length > 0) data += `?${params.join('&')}`;
-    return { type: 'email', data };
-  },
-
-  generateSMS(phone: string, message?: string): QRData {
-    let data = `sms:${phone}`;
-    if (message) data += `?body=${encodeURIComponent(message)}`;
-    return { type: 'sms', data };
-  },
-
-  generateContact(contact: ContactData): QRData {
-    const vcard = [
-      'BEGIN:VCARD',
-      'VERSION:3.0',
-      `FN:${contact.name}`,
-      contact.phone ? `TEL:${contact.phone}` : '',
-      contact.email ? `EMAIL:${contact.email}` : '',
-      contact.organization ? `ORG:${contact.organization}` : '',
-      contact.website ? `URL:${contact.website}` : '',
-      'END:VCARD',
-    ]
-      .filter(Boolean)
-      .join('\n');
-    return { type: 'contact', data: vcard };
-  },
-
-  generateLocation(location: LocationData): QRData {
-    const data = `geo:${location.latitude},${location.longitude}${
-      location.label ? `?q=${encodeURIComponent(location.label)}` : ''
-    }`;
-    return { type: 'location', data };
-  },
-
-  generateWallet(address: string): QRData {
-    return { type: 'wallet', data: address };
-  },
-
-  generateEncrypted(data: string): QRData {
-    return { type: 'encrypted', data, encrypted: true };
-  },
-
-  parseQRData(rawData: string): QRData {
-    if (rawData.startsWith('mailto:')) {
-      return { type: 'email', data: rawData };
+  formatData(category: QRCategory, input: string): string {
+    switch (category) {
+      case 'url':
+        return input.startsWith('http') ? input : `https://${input}`;
+      
+      case 'email':
+        return `mailto:${input}`;
+      
+      case 'sms':
+        return `sms:${input}`;
+      
+      case 'phone':
+        return `tel:${input}`;
+      
+      case 'wallet':
+        return `crypto:${input}`;
+      
+      case 'wifi':
+        // Format: WIFI:T:WPA;S:SSID;P:password;;
+        const [ssid, password, type = 'WPA'] = input.split(';');
+        return `WIFI:T:${type};S:${ssid};P:${password};;`;
+      
+      case 'location':
+        // Format: geo:latitude,longitude
+        return `geo:${input}`;
+      
+      case 'contact':
+        // Simple vCard format
+        const [name, phone, email] = input.split(';');
+        return `BEGIN:VCARD\nVERSION:3.0\nFN:${name}\nTEL:${phone}\nEMAIL:${email}\nEND:VCARD`;
+      
+      case 'text':
+      case 'encrypted':
+      default:
+        return input;
     }
-    if (rawData.startsWith('sms:')) {
-      return { type: 'sms', data: rawData };
+  },
+
+  parseQRData(data: string): { type: string; content: string } {
+    if (data.startsWith('http://') || data.startsWith('https://')) {
+      return { type: 'URL', content: data };
     }
-    if (rawData.startsWith('geo:')) {
-      return { type: 'location', data: rawData };
+    if (data.startsWith('mailto:')) {
+      return { type: 'Email', content: data.replace('mailto:', '') };
     }
-    if (rawData.startsWith('BEGIN:VCARD')) {
-      return { type: 'contact', data: rawData };
+    if (data.startsWith('tel:')) {
+      return { type: 'Phone', content: data.replace('tel:', '') };
     }
-    if (rawData.startsWith('http://') || rawData.startsWith('https://')) {
-      return { type: 'url', data: rawData };
+    if (data.startsWith('sms:')) {
+      return { type: 'SMS', content: data.replace('sms:', '') };
     }
-    if (rawData.startsWith('CODEVAULT_ENCRYPTED:')) {
-      return { type: 'encrypted', data: rawData, encrypted: true };
+    if (data.startsWith('geo:')) {
+      return { type: 'Location', content: data.replace('geo:', '') };
     }
-    return { type: 'text', data: rawData };
+    if (data.startsWith('WIFI:')) {
+      return { type: 'WiFi', content: data };
+    }
+    if (data.startsWith('BEGIN:VCARD')) {
+      return { type: 'Contact', content: data };
+    }
+    if (data.startsWith('crypto:')) {
+      return { type: 'Wallet', content: data.replace('crypto:', '') };
+    }
+    if (data.startsWith('QUANTUM:')) {
+      return { type: 'Quantum QR', content: data };
+    }
+    return { type: 'Text', content: data };
   },
 };

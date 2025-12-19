@@ -1,61 +1,25 @@
-import * as FileSystem from 'expo-file-system';
 import * as Sharing from 'expo-sharing';
+import * as FileSystem from 'expo-file-system';
 import { captureRef } from 'react-native-view-shot';
 
 export const qrImageService = {
-  async captureQRCode(viewRef: any): Promise<string | null> {
+  async shareQRCode(qrRef: any, filename: string = 'QRCode'): Promise<boolean> {
     try {
-      const uri = await captureRef(viewRef, {
+      const uri = await captureRef(qrRef, {
         format: 'png',
         quality: 1,
       });
-      return uri;
-    } catch (error) {
-      console.error('Error capturing QR code:', error);
-      return null;
-    }
-  },
 
-  async shareQRCode(viewRef: any, name?: string): Promise<boolean> {
-    try {
-      const uri = await this.captureQRCode(viewRef);
-      if (!uri) return false;
+      const fileUri = `${FileSystem.cacheDirectory}${filename}.png`;
+      await FileSystem.copyAsync({ from: uri, to: fileUri });
 
-      const isAvailable = await Sharing.isAvailableAsync();
-      if (!isAvailable) {
-        console.error('Sharing is not available on this device');
-        return false;
+      if (await Sharing.isAvailableAsync()) {
+        await Sharing.shareAsync(fileUri);
+        return true;
       }
-
-      await Sharing.shareAsync(uri, {
-        mimeType: 'image/png',
-        dialogTitle: name ? `Share ${name}` : 'Share QR Code',
-        UTI: 'public.png',
-      });
-
-      return true;
-    } catch (error) {
-      console.error('Error sharing QR code:', error);
       return false;
-    }
-  },
-
-  async saveToDevice(viewRef: any, name: string): Promise<boolean> {
-    try {
-      const uri = await this.captureQRCode(viewRef);
-      if (!uri) return false;
-
-      const fileName = `${name}_${Date.now()}.png`;
-      const destPath = `${FileSystem.documentDirectory}${fileName}`;
-
-      await FileSystem.copyAsync({
-        from: uri,
-        to: destPath,
-      });
-
-      return true;
     } catch (error) {
-      console.error('Error saving QR code:', error);
+      console.error('Share error:', error);
       return false;
     }
   },

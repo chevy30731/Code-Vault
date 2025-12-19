@@ -2,136 +2,108 @@ import React from 'react';
 import { View, Text, StyleSheet, TouchableOpacity, ScrollView } from 'react-native';
 import { MaterialIcons } from '@expo/vector-icons';
 import type { QRCategory } from '@/types/qr';
+import { QR_CATEGORIES } from '@/types/qr';
 
 interface CategoryPickerProps {
-  categories: QRCategory[];
-  selectedCategory?: string;
-  onSelectCategory: (categoryId: string) => void;
+  selected: QRCategory;
+  onSelect: (category: QRCategory) => void;
   isPremium: boolean;
-  onUpgrade: () => void;
 }
 
-export function CategoryPicker({
-  categories,
-  selectedCategory,
-  onSelectCategory,
-  isPremium,
-  onUpgrade,
-}: CategoryPickerProps) {
-  if (!isPremium) {
-    return (
-      <View style={styles.lockedContainer}>
-        <MaterialIcons name="lock" size={24} color="#FFD700" />
-        <Text style={styles.lockedText}>Categorize your QR codes</Text>
-        <TouchableOpacity style={styles.upgradeButton} onPress={onUpgrade}>
-          <MaterialIcons name="star" size={16} color="#000000" />
-          <Text style={styles.upgradeText}>Upgrade to Premium</Text>
-        </TouchableOpacity>
-      </View>
-    );
-  }
-
+export function CategoryPicker({ selected, onSelect, isPremium }: CategoryPickerProps) {
   return (
-    <View style={styles.container}>
-      <Text style={styles.title}>Category</Text>
-      <ScrollView horizontal showsHorizontalScrollIndicator={false}>
-        <View style={styles.categoriesContainer}>
-          {categories.map((category) => {
-            const isSelected = selectedCategory === category.id;
+    <ScrollView 
+      horizontal 
+      showsHorizontalScrollIndicator={false}
+      contentContainerStyle={styles.container}
+    >
+      {QR_CATEGORIES.map((category) => {
+        const isLocked = category.type === 'encrypted' && !isPremium;
+        const isSelected = selected === category.type;
 
-            return (
-              <TouchableOpacity
-                key={category.id}
-                style={[
-                  styles.category,
-                  isSelected && styles.selectedCategory,
-                  { borderColor: isSelected ? category.color : 'transparent' },
-                ]}
-                onPress={() => onSelectCategory(category.id)}
-              >
-                <MaterialIcons
-                  name={category.icon as any}
-                  size={24}
-                  color={isSelected ? category.color : '#CCCCCC'}
-                />
-                <Text
-                  style={[
-                    styles.categoryName,
-                    { color: isSelected ? category.color : '#CCCCCC' },
-                  ]}
-                >
-                  {category.name}
-                </Text>
-              </TouchableOpacity>
-            );
-          })}
-        </View>
-      </ScrollView>
-    </View>
+        return (
+          <TouchableOpacity
+            key={category.type}
+            style={[
+              styles.category,
+              isSelected && styles.categorySelected,
+              isLocked && styles.categoryLocked,
+            ]}
+            onPress={() => !isLocked && onSelect(category.type)}
+            disabled={isLocked}
+          >
+            <View style={[styles.iconContainer, { backgroundColor: category.color + '22' }]}>
+              <MaterialIcons 
+                name={isLocked ? 'lock' : category.icon as any} 
+                size={24} 
+                color={isLocked ? '#666666' : category.color} 
+              />
+            </View>
+            <Text style={[
+              styles.label,
+              isSelected && styles.labelSelected,
+              isLocked && styles.labelLocked,
+            ]}>
+              {category.label}
+            </Text>
+            {isLocked && (
+              <View style={styles.premiumBadge}>
+                <MaterialIcons name="diamond" size={12} color="#FFD700" />
+              </View>
+            )}
+          </TouchableOpacity>
+        );
+      })}
+    </ScrollView>
   );
 }
 
 const styles = StyleSheet.create({
   container: {
-    marginVertical: 12,
-  },
-  title: {
-    fontSize: 14,
-    fontWeight: '600',
-    color: '#CCCCCC',
-    marginBottom: 12,
-    paddingHorizontal: 20,
-  },
-  categoriesContainer: {
-    flexDirection: 'row',
-    paddingHorizontal: 16,
-    gap: 12,
+    paddingHorizontal: 12,
+    paddingVertical: 8,
   },
   category: {
     alignItems: 'center',
-    padding: 12,
-    borderRadius: 12,
+    marginHorizontal: 6,
+    paddingHorizontal: 16,
+    paddingVertical: 12,
+    borderRadius: 16,
     backgroundColor: '#1A1A2E',
     borderWidth: 2,
-    minWidth: 80,
+    borderColor: 'transparent',
+    minWidth: 100,
   },
-  selectedCategory: {
-    backgroundColor: '#0F0F1E',
+  categorySelected: {
+    borderColor: '#00D9FF',
+    backgroundColor: '#00D9FF11',
   },
-  categoryName: {
+  categoryLocked: {
+    opacity: 0.5,
+  },
+  iconContainer: {
+    width: 48,
+    height: 48,
+    borderRadius: 24,
+    alignItems: 'center',
+    justifyContent: 'center',
+    marginBottom: 8,
+  },
+  label: {
     fontSize: 12,
-    fontWeight: '500',
-    marginTop: 6,
-  },
-  lockedContainer: {
-    backgroundColor: '#1A1A2E',
-    marginHorizontal: 16,
-    marginVertical: 12,
-    padding: 20,
-    borderRadius: 16,
-    alignItems: 'center',
-    borderWidth: 1,
-    borderColor: '#FFD70033',
-  },
-  lockedText: {
-    fontSize: 16,
     fontWeight: '600',
-    color: '#FFD700',
-    marginTop: 8,
-    marginBottom: 12,
+    color: '#CCCCCC',
+    textAlign: 'center',
   },
-  upgradeButton: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    backgroundColor: '#FFD700',
-    paddingHorizontal: 16,
-    paddingVertical: 8,
-    borderRadius: 8,
-    gap: 6,
+  labelSelected: {
+    color: '#00D9FF',
   },
-  upgradeText: {
-    fontSize: 14,
-    fontWeight: '700',
-    color: '#000000',
+  labelLocked: {
+    color: '#666666',
+  },
+  premiumBadge: {
+    position: 'absolute',
+    top: 8,
+    right: 8,
   },
 });

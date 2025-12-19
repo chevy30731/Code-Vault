@@ -1,72 +1,58 @@
-export type QuantumLayerType = 'public' | 'private' | 'hidden';
+export type LayerType = 'public' | 'private' | 'hidden';
 
 export interface QuantumLayer {
   id: string;
-  type: QuantumLayerType;
+  type: LayerType;
   name: string;
   data: string;
-  encrypted: boolean;
-  requiresAuth?: boolean; // PIN/biometric for private, developer mode for hidden
   description?: string;
+  scanLimit?: number;
+  scanCount: number;
+  expiresAt?: number;
+  createdAt: number;
 }
 
 export interface QuantumQRCode {
   id: string;
-  version: string; // '1.0'
   name: string;
   layers: QuantumLayer[];
   createdAt: number;
-  updatedAt: number;
-  category?: string;
-  tags?: string[];
-  expiration?: {
-    type: 'time' | 'scans' | 'both';
-    expiresAt?: number; // Unix timestamp
-    maxScans?: number;
-    currentScans?: number;
-  };
-  watermark?: string;
-}
-
-export interface QuantumLayerConfig {
-  type: QuantumLayerType;
-  name: string;
-  data: string;
-  description?: string;
-  unlockAfterScans?: number;
 }
 
 export interface UnlockedLayer extends QuantumLayer {
-  decryptedData?: string;
   unlocked: boolean;
+  decryptedData?: string;
   unlockedAt?: number;
 }
 
-export const LAYER_TYPES = [
+export interface LayerTypeInfo {
+  type: LayerType;
+  label: string;
+  icon: string;
+  color: string;
+  description: string;
+}
+
+export const LAYER_TYPES: LayerTypeInfo[] = [
   {
-    type: 'public' as QuantumLayerType,
-    label: 'Public Layer',
-    description: 'Visible to anyone who scans',
+    type: 'public',
+    label: 'Public',
     icon: 'public',
     color: '#00D9FF',
-    requiresAuth: false,
+    description: 'Visible to everyone',
   },
   {
-    type: 'private' as QuantumLayerType,
-    label: 'Private Layer',
-    description: 'Requires PIN/biometric to unlock',
+    type: 'private',
+    label: 'Private',
     icon: 'lock',
     color: '#FFD700',
-    requiresAuth: true,
+    description: 'Requires PIN to unlock',
   },
   {
-    type: 'hidden' as QuantumLayerType,
-    label: 'Hidden Layer',
-    description: 'Developer/debug mode only',
-    icon: 'lock-outline',
+    type: 'hidden',
+    label: 'Hidden',
+    icon: 'visibility-off',
     color: '#FF4444',
-    requiresAuth: true,
+    description: 'Developer mode only',
   },
 ];
-
-export const QUANTUM_QR_PREFIX = 'CODEVAULT_QUANTUM:';

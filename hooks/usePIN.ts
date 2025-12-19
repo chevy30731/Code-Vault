@@ -1,60 +1,40 @@
 import { useState, useEffect } from 'react';
 import { storageService } from '@/services/storage';
-import type { PINConfig } from '@/types/qr';
 
 export function usePIN() {
-  const [config, setConfig] = useState<PINConfig>({ enabled: false, pin: '' });
+  const [pin, setPin] = useState<string | null>(null);
   const [loading, setLoading] = useState(true);
 
   useEffect(() => {
-    loadConfig();
+    loadPIN();
   }, []);
 
-  const loadConfig = async () => {
-    try {
-      const pinConfig = await storageService.getPINConfig();
-      setConfig(pinConfig);
-    } catch (error) {
-      console.error('Error loading PIN config:', error);
-    } finally {
-      setLoading(false);
-    }
+  const loadPIN = async () => {
+    const savedPIN = await storageService.getPIN();
+    setPin(savedPIN);
+    setLoading(false);
   };
 
-  const setPIN = async (pin: string) => {
-    try {
-      const newConfig: PINConfig = { enabled: true, pin };
-      await storageService.setPINConfig(newConfig);
-      setConfig(newConfig);
-      return true;
-    } catch (error) {
-      console.error('Error setting PIN:', error);
-      return false;
-    }
+  const setPINCode = async (newPin: string) => {
+    await storageService.setPIN(newPin);
+    setPin(newPin);
   };
 
-  const disablePIN = async () => {
-    try {
-      const newConfig: PINConfig = { enabled: false, pin: '' };
-      await storageService.setPINConfig(newConfig);
-      setConfig(newConfig);
-      return true;
-    } catch (error) {
-      console.error('Error disabling PIN:', error);
-      return false;
-    }
+  const removePINCode = async () => {
+    await storageService.removePIN();
+    setPin(null);
   };
 
-  const verifyPIN = async (pin: string): Promise<boolean> => {
-    return storageService.verifyPIN(pin);
+  const verifyPIN = (inputPin: string): boolean => {
+    return pin === inputPin;
   };
 
   return {
-    enabled: config.enabled,
+    pin,
+    hasPIN: !!pin,
     loading,
-    setPIN,
-    disablePIN,
+    setPIN: setPINCode,
+    removePIN: removePINCode,
     verifyPIN,
-    refresh: loadConfig,
   };
 }

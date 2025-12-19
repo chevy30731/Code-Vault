@@ -1,98 +1,65 @@
+export type ScanProfile = 'standard' | 'silent' | 'wallet' | 'legacy' | 'artifact';
+
+export type ThreatLevel = 'safe' | 'warning' | 'danger';
+
 export interface ScanLog {
   id: string;
-  timestamp: number;
-  type: 'quantum' | 'artifact' | 'standard' | 'wallet' | 'encrypted';
   data: string;
+  type: string;
+  timestamp: number;
   location?: {
     latitude: number;
     longitude: number;
-    accuracy?: number;
+    accuracy: number;
   };
-  tags?: string[];
-  threatLevel: 'safe' | 'warning' | 'danger';
-  profile?: ScanProfile;
-  metadata?: {
-    quantumLayers?: number;
-    artifactId?: string;
-    expirationStatus?: 'valid' | 'expired' | 'near-expiry';
-    scanCount?: number;
-  };
+  profile: ScanProfile;
+  threatLevel: ThreatLevel;
+  tags: string[];
+  notes?: string;
 }
 
-export type ScanProfile = 'silent' | 'wallet' | 'legacy' | 'artifact' | 'standard';
-
-export interface ScanProfileConfig {
-  id: ScanProfile;
-  name: string;
-  description: string;
+export interface ScanProfileInfo {
+  type: ScanProfile;
+  label: string;
   icon: string;
   color: string;
-  autoCopy: boolean;
-  autoOpen: boolean;
-  autoArchive: boolean;
-  addGPS: boolean;
-  showPreview: boolean;
+  description: string;
 }
 
-export const SCAN_PROFILES: ScanProfileConfig[] = [
+export const SCAN_PROFILES: ScanProfileInfo[] = [
   {
-    id: 'standard',
-    name: 'Standard',
-    description: 'Default scan with preview',
+    type: 'standard',
+    label: 'Standard',
     icon: 'qr-code-scanner',
     color: '#00D9FF',
-    autoCopy: false,
-    autoOpen: false,
-    autoArchive: false,
-    addGPS: false,
-    showPreview: true,
+    description: 'Normal scan with preview',
   },
   {
-    id: 'silent',
-    name: 'Silent Scan',
+    type: 'silent',
+    label: 'Silent',
+    icon: 'notifications-off',
+    color: '#999999',
     description: 'Auto-copy without preview',
-    icon: 'content-copy',
-    color: '#9C27B0',
-    autoCopy: true,
-    autoOpen: false,
-    autoArchive: true,
-    addGPS: false,
-    showPreview: false,
   },
   {
-    id: 'wallet',
-    name: 'Wallet Scan',
-    description: 'Auto-open crypto wallets',
+    type: 'wallet',
+    label: 'Wallet',
     icon: 'account-balance-wallet',
     color: '#FFD700',
-    autoCopy: false,
-    autoOpen: true,
-    autoArchive: true,
-    addGPS: false,
-    showPreview: false,
+    description: 'Crypto wallet auto-open',
   },
   {
-    id: 'legacy',
-    name: 'Legacy Scan',
-    description: 'Archive + export ready',
-    icon: 'archive',
-    color: '#4CAF50',
-    autoCopy: false,
-    autoOpen: false,
-    autoArchive: true,
-    addGPS: true,
-    showPreview: true,
+    type: 'legacy',
+    label: 'Legacy',
+    icon: 'folder-special',
+    color: '#9C27B0',
+    description: 'Archive and export',
   },
   {
-    id: 'artifact',
-    name: 'Artifact Scan',
-    description: 'Full provenance capture',
-    icon: 'inventory',
-    color: '#FF6F00',
-    autoCopy: false,
-    autoOpen: false,
-    autoArchive: true,
-    addGPS: true,
-    showPreview: true,
+    type: 'artifact',
+    label: 'Artifact',
+    icon: 'bookmark',
+    color: '#FF6B9D',
+    description: 'Tag + GPS + Timestamp',
   },
 ];

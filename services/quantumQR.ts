@@ -1,261 +1,127 @@
-import * as Crypto from 'expo-crypto';
+import type { QuantumQRCode, QuantumLayer, UnlockedLayer, LayerType } from '@/types/quantumQR';
 import { encryptionService } from './encryption';
-import type {
-  QuantumQRCode,
-  QuantumLayer,
-  QuantumLayerConfig,
-  UnlockedLayer,
-} from '@/types/quantumQR';
-import { QUANTUM_QR_PREFIX } from '@/types/quantumQR';
 
 export const quantumQRService = {
-  async generateQuantumQR(
-    name: string,
-    layerConfigs: QuantumLayerConfig[],
-    systemPIN?: string,
-    expiration?: QuantumQRCode['expiration']
-  ): Promise<QuantumQRCode> {
-    const layers: QuantumLayer[] = [];
-
-    for (const config of layerConfigs) {
-      const layerId = await this.generateLayerId(config);
-      
-      let encrypted = false;
-      let processedData = config.data;
-
-      // Encrypt private and hidden layers
-      if (config.type === 'private' || config.type === 'hidden') {
-        if (!systemPIN) {
-          throw new Error(`PIN required for ${config.type} layer`);
-        }
-        
-        // Use layer-specific encryption key combining PIN and layer type
-        const layerKey = `${systemPIN}_${config.type}_${layerId}`;
-        processedData = await encryptionService.encryptData(config.data, layerKey);
-        encrypted = true;
-      }
-
-      layers.push({
-        id: layerId,
-        type: config.type,
-        name: config.name,
-        data: processedData,
-        encrypted,
-        requiresAuth: config.type !== 'public',
-        description: config.description,
-      });
-    }
-
-    const quantumQR: QuantumQRCode = {
-      id: `quantum_${Date.now()}_${Math.random().toString(36).substring(7)}`,
-      version: '1.0',
-      name,
-      layers,
-      createdAt: Date.now(),
-      updatedAt: Date.now(),
-      expiration: expiration ? { ...expiration, currentScans: 0 } : undefined,
-      watermark: 'Code Vault',
-    };
-
-    return quantumQR;
-  },
-
-  async generateLayerId(config: QuantumLayerConfig): Promise<string> {
-    const dataString = JSON.stringify({
-      type: config.type,
-      name: config.name,
-      timestamp: Date.now(),
-    });
-
-    const hash = await Crypto.digestStringAsync(
-      Crypto.CryptoDigestAlgorithm.SHA256,
-      dataString
-    );
-
-    return `L-${hash.substring(0, 8).toUpperCase()}`;
-  },
-
-  encodeQuantumQR(quantumQR: QuantumQRCode): string {
-    const compactData = {
-      v: quantumQR.version,
-      id: quantumQR.id,
-      name: quantumQR.name,
-      layers: quantumQR.layers.map((layer) => ({
+  encodeQuantumQR(qr: QuantumQRCode): string {
+    const encoded = JSON.stringify({
+      id: qr.id,
+      name: qr.name,
+      layers: qr.layers.map((layer) => ({
         id: layer.id,
-        t: layer.type,
-        n: layer.name,
-        d: layer.data,
-        e: layer.encrypted,
-        r: layer.requiresAuth,
-        desc: layer.description,
+        type: layer.type,
+        name: layer.name,
+        data: layer.data,
+        description: layer.description,
+        scanLimit: layer.scanLimit,
+        scanCount: layer.scanCount,
+        expiresAt: layer.expiresAt,
       })),
-      ts: quantumQR.createdAt,
-      exp: quantumQR.expiration,
-      wm: quantumQR.watermark,
-    };
-
-    return `${QUANTUM_QR_PREFIX}${JSON.stringify(compactData)}`;
+    });
+    return `QUANTUM:${Buffer.from(encoded).toString('base64')}`;
   },
 
-  decodeQuantumQR(qrData: string): QuantumQRCode | null {
+  decodeQuantumQR(data: string): QuantumQRCode | null {
     try {
-      if (!qrData.startsWith(QUANTUM_QR_PREFIX)) {
+      if (!data.startsWith('QUANTUM:')) {
         return null;
       }
-
-      const jsonData = qrData.replace(QUANTUM_QR_PREFIX, '');
-      const parsed = JSON.parse(jsonData);
-
-      const layers: QuantumLayer[] = parsed.layers.map((layer: any) => ({
-        id: layer.id,
-        type: layer.t,
-        name: layer.n,
-        data: layer.d,
-        encrypted: layer.e,
-        requiresAuth: layer.r,
-        description: layer.desc,
-      }));
-
-      return {
-        id: parsed.id,
-        version: parsed.v,
-        name: parsed.name,
-        layers,
-        createdAt: parsed.ts,
-        updatedAt: parsed.ts,
-        expiration: parsed.exp,
-        watermark: parsed.wm,
-      };
-    } catch (error) {
-      console.error('Error decoding quantum QR:', error);
+      const base64 = data.replace('QUANTUM:', '');
+      const decoded = Buffer.from(base64, 'base64').toString();
+      return JSON.parse(decoded);
+    } catch {
       return null;
     }
   },
 
-  async unlockLayer(
-    layer: QuantumLayer,
-    pin: string,
-    isDeveloperMode: boolean = false
-  ): Promise<UnlockedLayer> {
-    const unlockedLayer: UnlockedLayer = {
-      ...layer,
-      unlocked: false,
-    };
-
-    // Public layer - always unlocked
-    if (layer.type === 'public') {
-      unlockedLayer.unlocked = true;
-      unlockedLayer.decryptedData = layer.data;
-      unlockedLayer.unlockedAt = Date.now();
-      return unlockedLayer;
-    }
-
-    // Hidden layer - requires developer mode
-    if (layer.type === 'hidden' && !isDeveloperMode) {
-      return unlockedLayer;
-    }
-
-    // Decrypt private/hidden layers
-    if (layer.encrypted) {
-      try {
-        const layerKey = `${pin}_${layer.type}_${layer.id}`;
-        const decrypted = await encryptionService.decryptData(layer.data, layerKey);
-        
-        unlockedLayer.decryptedData = decrypted;
-        unlockedLayer.unlocked = true;
-        unlockedLayer.unlockedAt = Date.now();
-      } catch (error) {
-        console.error('Failed to unlock layer:', error);
-      }
-    }
-
-    return unlockedLayer;
-  },
-
   async unlockAllLayers(
-    quantumQR: QuantumQRCode,
+    qr: QuantumQRCode,
     pin: string,
-    isDeveloperMode: boolean = false
+    developerMode: boolean = false
   ): Promise<UnlockedLayer[]> {
-    const unlockedLayers: UnlockedLayer[] = [];
+    const unlocked: UnlockedLayer[] = [];
 
-    for (const layer of quantumQR.layers) {
-      const unlocked = await this.unlockLayer(layer, pin, isDeveloperMode);
-      unlockedLayers.push(unlocked);
+    for (const layer of qr.layers) {
+      let isUnlocked = false;
+      let decrypted: string | undefined;
+
+      if (layer.type === 'public') {
+        isUnlocked = true;
+        decrypted = layer.data;
+      } else if (layer.type === 'private' && pin) {
+        try {
+          decrypted = await encryptionService.decrypt(layer.data, pin);
+          isUnlocked = true;
+        } catch {
+          isUnlocked = false;
+        }
+      } else if (layer.type === 'hidden' && developerMode && pin) {
+        try {
+          decrypted = await encryptionService.decrypt(layer.data, pin);
+          isUnlocked = true;
+        } catch {
+          isUnlocked = false;
+        }
+      }
+
+      // Check expiration
+      if (layer.expiresAt && Date.now() > layer.expiresAt) {
+        isUnlocked = false;
+        decrypted = undefined;
+      }
+
+      // Check scan limit
+      if (layer.scanLimit && layer.scanCount >= layer.scanLimit) {
+        isUnlocked = false;
+        decrypted = undefined;
+      }
+
+      unlocked.push({
+        ...layer,
+        unlocked: isUnlocked,
+        decryptedData: decrypted,
+        unlockedAt: isUnlocked ? Date.now() : undefined,
+      });
     }
 
-    return unlockedLayers;
+    return unlocked;
   },
 
-  getPublicLayers(quantumQR: QuantumQRCode): QuantumLayer[] {
-    return quantumQR.layers.filter((layer) => layer.type === 'public');
-  },
-
-  getPrivateLayers(quantumQR: QuantumQRCode): QuantumLayer[] {
-    return quantumQR.layers.filter((layer) => layer.type === 'private');
-  },
-
-  getHiddenLayers(quantumQR: QuantumQRCode): QuantumLayer[] {
-    return quantumQR.layers.filter((layer) => layer.type === 'hidden');
-  },
-
-  getLayerCount(quantumQR: QuantumQRCode): { public: number; private: number; hidden: number } {
+  getLayerCount(qr: QuantumQRCode): { public: number; private: number; hidden: number } {
     return {
-      public: this.getPublicLayers(quantumQR).length,
-      private: this.getPrivateLayers(quantumQR).length,
-      hidden: this.getHiddenLayers(quantumQR).length,
+      public: qr.layers.filter((l) => l.type === 'public').length,
+      private: qr.layers.filter((l) => l.type === 'private').length,
+      hidden: qr.layers.filter((l) => l.type === 'hidden').length,
     };
   },
 
-  isExpired(quantumQR: QuantumQRCode): boolean {
-    if (!quantumQR.expiration) return false;
-
-    const { type, expiresAt, maxScans, currentScans } = quantumQR.expiration;
-
-    if (type === 'time' || type === 'both') {
-      if (expiresAt && Date.now() > expiresAt) return true;
+  async createLayer(
+    type: LayerType,
+    name: string,
+    data: string,
+    pin?: string,
+    options?: {
+      description?: string;
+      scanLimit?: number;
+      expiresAt?: number;
     }
+  ): Promise<QuantumLayer> {
+    let finalData = data;
 
-    if (type === 'scans' || type === 'both') {
-      if (maxScans && currentScans && currentScans >= maxScans) return true;
+    // Encrypt private and hidden layers
+    if ((type === 'private' || type === 'hidden') && pin) {
+      finalData = await encryptionService.encrypt(data, pin);
     }
-
-    return false;
-  },
-
-  incrementScanCount(quantumQR: QuantumQRCode): QuantumQRCode {
-    if (!quantumQR.expiration) return quantumQR;
 
     return {
-      ...quantumQR,
-      expiration: {
-        ...quantumQR.expiration,
-        currentScans: (quantumQR.expiration.currentScans || 0) + 1,
-      },
+      id: Date.now().toString() + Math.random().toString(36).substr(2, 9),
+      type,
+      name,
+      data: finalData,
+      description: options?.description,
+      scanLimit: options?.scanLimit,
+      scanCount: 0,
+      expiresAt: options?.expiresAt,
+      createdAt: Date.now(),
     };
-  },
-
-  getExpirationStatus(quantumQR: QuantumQRCode): 'valid' | 'expired' | 'near-expiry' {
-    if (!quantumQR.expiration) return 'valid';
-    if (this.isExpired(quantumQR)) return 'expired';
-
-    const { type, expiresAt, maxScans, currentScans } = quantumQR.expiration;
-
-    // Check for near expiry
-    if (type === 'time' || type === 'both') {
-      if (expiresAt) {
-        const timeRemaining = expiresAt - Date.now();
-        const oneHour = 60 * 60 * 1000;
-        if (timeRemaining < oneHour) return 'near-expiry';
-      }
-    }
-
-    if (type === 'scans' || type === 'both') {
-      if (maxScans && currentScans) {
-        if (currentScans >= maxScans - 1) return 'near-expiry';
-      }
-    }
-
-    return 'valid';
   },
 };
