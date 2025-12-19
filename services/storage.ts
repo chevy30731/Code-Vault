@@ -1,16 +1,23 @@
 import AsyncStorage from '@react-native-async-storage/async-storage';
 import type { PremiumStatus } from '@/types/qr';
-import type { ScanLog } from '@/types/scanLog';
+import type { ScanLog, ScanProfile } from '@/types/scanLog';
 import type { Artifact } from '@/types/artifact';
 import type { QuantumQRCode } from '@/types/quantumQR';
 
 const KEYS = {
   PREMIUM_STATUS: '@codevault_premium',
   PIN: '@codevault_pin',
+  PIN_CONFIG: '@codevault_pin_config',
+  SCAN_PROFILE: '@codevault_scan_profile',
   SCAN_LOGS: '@codevault_scans',
   ARTIFACTS: '@codevault_artifacts',
   QUANTUM_QRS: '@codevault_quantum',
 };
+
+export interface PINConfig {
+  enabled: boolean;
+  pin?: string;
+}
 
 export const storageService = {
   // Premium Status
@@ -63,6 +70,49 @@ export const storageService = {
       await AsyncStorage.removeItem(KEYS.PIN);
     } catch (error) {
       console.error('Error removing PIN:', error);
+    }
+  },
+
+  // PIN Configuration
+  async getPINConfig(): Promise<PINConfig> {
+    try {
+      const pin = await AsyncStorage.getItem(KEYS.PIN);
+      return {
+        enabled: !!pin,
+        pin: pin || undefined,
+      };
+    } catch {
+      return { enabled: false };
+    }
+  },
+
+  async setPINConfig(config: PINConfig): Promise<void> {
+    try {
+      if (config.enabled && config.pin) {
+        await AsyncStorage.setItem(KEYS.PIN, config.pin);
+      } else {
+        await AsyncStorage.removeItem(KEYS.PIN);
+      }
+    } catch (error) {
+      console.error('Error saving PIN config:', error);
+    }
+  },
+
+  // Scan Profile
+  async getScanProfile(): Promise<ScanProfile> {
+    try {
+      const profile = await AsyncStorage.getItem(KEYS.SCAN_PROFILE);
+      return (profile as ScanProfile) || 'standard';
+    } catch {
+      return 'standard';
+    }
+  },
+
+  async setScanProfile(profile: ScanProfile): Promise<void> {
+    try {
+      await AsyncStorage.setItem(KEYS.SCAN_PROFILE, profile);
+    } catch (error) {
+      console.error('Error saving scan profile:', error);
     }
   },
 
